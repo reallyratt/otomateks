@@ -1,0 +1,5 @@
+{
+  "name": "Scripted Presentation Generator",
+  "description": "Upload a specially formatted DOCX document to automatically generate a PowerPoint presentation based on your chosen template.",
+  "requestFramePermissions": []
+}
