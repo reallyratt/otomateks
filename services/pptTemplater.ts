@@ -1,3 +1,4 @@
+
 import { PresentationData, Language } from '../types';
 
 declare const JSZip: any;
@@ -5,6 +6,13 @@ declare const JSZip: any;
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 const MAX_TEXT_LENGTH = 140;
+
+// Define XML Namespaces to ensure valid file structure
+const NS_CONTENT_TYPES = 'http://schemas.openxmlformats.org/package/2006/content-types';
+const NS_RELATIONSHIPS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const NS_PRESENTATIONML = 'http://purl.oclc.org/ooxml/presentationml/main';
+const NS_RELATIONSHIPS_OFFICE_DOC = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
 
 /**
  * Chunks a long string into smaller pieces, ensuring cuts happen at spaces.
@@ -191,7 +199,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
 
     for (const sldId of originalSlideIds) {
         slideInsertionIndex++;
-        const rId = sldId.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+        const rId = sldId.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
         if (!rId) continue;
 
         const rel = presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`);
@@ -284,20 +292,20 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 zip.file(newSlideRelsPath, slideRelsStr);
             }
 
-            const newOverride = contentTypesXmlDoc.createElement('Override');
+            const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
             newOverride.setAttribute('PartName', `/${newSlidePath}`);
             newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
             contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
             
-            const newPresRel = presRelsXmlDoc.createElement('Relationship');
+            const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
             newPresRel.setAttribute('Id', newPresRelId);
             newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
             newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
             presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
             
-            const newSldIdNode = presXmlDoc.createElementNS('http://purl.oclc.org/ooxml/presentationml/main', 'p:sldId');
+            const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
             newSldIdNode.setAttribute('id', String(newSlideId));
-            newSldIdNode.setAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'r:id', newPresRelId);
+            newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
             
             const allCurrentSldIds = Array.from(slideIdList.querySelectorAll('sldId'));
             slideIdList.insertBefore(newSldIdNode, allCurrentSldIds[slideInsertionIndex]);
@@ -312,7 +320,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
 
     const slideDataCache = [];
     for (const sldIdNode of finalSlideIdNodes) {
-        const rId = sldIdNode.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+        const rId = sldIdNode.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
         const relNode = presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`);
         const oldTargetPath = relNode?.getAttribute('Target');
         if (!rId || !relNode || !oldTargetPath) continue;
@@ -354,13 +362,13 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         
         cacheItem.relNode.setAttribute('Target', newTargetPath);
 
-        const newOverride = contentTypesXmlDoc.createElement('Override');
+        const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
         newOverride.setAttribute('PartName', `/${newFullPath}`);
         newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
         typesNode.appendChild(newOverride);
         
         if (cacheItem.relsContent) {
-            const newRelsOverride = contentTypesXmlDoc.createElement('Override');
+            const newRelsOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
             newRelsOverride.setAttribute('PartName', `/${newRelsPath}`);
             newRelsOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.package.relationships+xml');
             typesNode.appendChild(newRelsOverride);
