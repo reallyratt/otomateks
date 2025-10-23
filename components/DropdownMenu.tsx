@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MoreVerticalIcon, CogIcon, BookOpenIcon, SlidersIcon, ClipboardIcon } from './icons';
 
@@ -54,7 +55,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ onSetupClick, onTuto
             </button>
 
             <div 
-                className={`absolute right-0 mt-2 w-48 bg-[var(--bg-secondary)]/90 backdrop-blur-sm border border-[var(--border-primary)] rounded-lg shadow-xl z-10 py-1 overflow-hidden transition-all duration-200 ease-out origin-top-right
+                className={`absolute right-0 mt-2 w-48 bg-[var(--bg-secondary)] backdrop-blur-lg border border-[var(--border-primary)] rounded-lg shadow-xl z-10 py-1 overflow-hidden transition-all duration-200 ease-out origin-top-right
                     ${isOpen 
                         ? 'opacity-100 scale-100 pointer-events-auto' 
                         : 'opacity-0 scale-95 pointer-events-none'

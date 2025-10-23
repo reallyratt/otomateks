@@ -126,7 +126,7 @@ const App: React.FC = () => {
     
     // Theming and Language State
     const [appLanguage, setAppLanguage] = useState<'english' | 'indonesia'>('english');
-    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [accentColor, setAccentColor] = useState('sky');
 
     const t = useCallback((key: string) => {
@@ -207,182 +207,189 @@ const App: React.FC = () => {
     const isGenerateDisabled = !uploadedTemplate || !presentationData.presentationTitle || isLoading;
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans transition-colors duration-300">
-            <div className="w-full max-w-4xl mx-auto">
-                <header className="flex justify-between items-start mb-8">
-                    <div className="text-left">
-                         <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-color-400)] to-[var(--accent-color-300)] mb-2">
-                            Otomateks
-                        </h1>
-                        <p className="text-lg text-[var(--text-secondary)]">
-                            {t('appSubtitle')}
-                        </p>
-                    </div>
-                    <DropdownMenu onSetupClick={() => setIsSetupOpen(true)} onTutorialClick={() => setIsTutorialOpen(true)} onSettingsClick={() => setIsSettingsOpen(true)} onDevlogClick={() => setIsDevlogOpen(true)} t={t} />
-                </header>
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans transition-colors duration-300 relative overflow-hidden">
+            <div className="absolute inset-0">
+                <div className="absolute top-0 -left-1/4 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[48rem] lg:h-[48rem] bg-[var(--accent-color-500)]/30 rounded-full filter blur-3xl opacity-50 animate-[blob_7s_infinite]"></div>
+                <div className="absolute bottom-0 -right-1/4 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[48rem] lg:h-[48rem] bg-pink-500/30 rounded-full filter blur-3xl opacity-50 animate-[blob_10s_infinite_4s]"></div>
+            </div>
+            
+            <div className="relative z-10 flex flex-col items-center p-4 sm:p-6 lg:p-8 min-h-screen overflow-y-auto hide-scrollbar">
+                <div className="w-full max-w-4xl mx-auto">
+                    <header className="flex justify-between items-start mb-8">
+                        <div className="text-left">
+                             <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-color-400)] to-[var(--accent-color-300)] mb-2">
+                                Otomateks
+                            </h1>
+                            <p className="text-lg text-[var(--text-secondary)]">
+                                {t('appSubtitle')}
+                            </p>
+                        </div>
+                        <DropdownMenu onSetupClick={() => setIsSetupOpen(true)} onTutorialClick={() => setIsTutorialOpen(true)} onSettingsClick={() => setIsSettingsOpen(true)} onDevlogClick={() => setIsDevlogOpen(true)} t={t} />
+                    </header>
 
-                <main className="space-y-6">
-                    <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] space-y-2">
-                        <label htmlFor="presentationTitle" className="block text-lg font-bold text-[var(--accent-color-400)]">
-                            {t('mainTitleLabel')}
-                        </label>
-                        <input
-                            type="text"
-                            id="presentationTitle"
-                            name="presentationTitle"
-                            value={presentationData.presentationTitle || ''}
-                            onChange={handleInputChange}
-                            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
-                            placeholder={t('mainTitlePlaceholder')}
-                        />
-                    </div>
+                    <main className="space-y-6">
+                        <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-2">
+                            <label htmlFor="presentationTitle" className="block text-lg font-bold text-[var(--accent-color-400)]">
+                                {t('mainTitleLabel')}
+                            </label>
+                            <input
+                                type="text"
+                                id="presentationTitle"
+                                name="presentationTitle"
+                                value={presentationData.presentationTitle || ''}
+                                onChange={handleInputChange}
+                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                placeholder={t('mainTitlePlaceholder')}
+                            />
+                        </div>
 
-                    {currentStep === 1 && (
-                        <StepContainer>
-                            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] space-y-4">
-                                <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3"><span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><DocumentIcon/></span> {t('workspaceTitle')}</h2>
-                                <div className="space-y-6">
-                                    {formConfig.map((field) => {
-                                        const titleKey = `${field.key}Title`;
-                                        const textKey = `${field.key}Text`;
-                                        const imagesKey = `${field.key}Images`;
-                                        const defaultMode = field.types.includes('text') ? 'text' : 'image';
-                                        const currentMode = inputModes[field.key] || defaultMode;
-                                        const isMultiImage = field.types.includes('multi-image');
+                        {currentStep === 1 && (
+                            <StepContainer>
+                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-4">
+                                    <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3"><span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><DocumentIcon/></span> {t('workspaceTitle')}</h2>
+                                    <div className="space-y-6">
+                                        {formConfig.map((field) => {
+                                            const titleKey = `${field.key}Title`;
+                                            const textKey = `${field.key}Text`;
+                                            const imagesKey = `${field.key}Images`;
+                                            const defaultMode = field.types.includes('text') ? 'text' : 'image';
+                                            const currentMode = inputModes[field.key] || defaultMode;
+                                            const isMultiImage = field.types.includes('multi-image');
 
-                                        return (
-                                        <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <h3 className="font-semibold text-[var(--text-primary)]">{field.label}</h3>
-                                                {field.types.length > 1 && (
-                                                    <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
-                                                        <button onClick={() => handleModeChange(field.key, 'text')} className={`px-2 py-1 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><TextIcon className="w-4 h-4"/></button>
-                                                        <button onClick={() => handleModeChange(field.key, 'image')} className={`px-2 py-1 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><ImageIcon className="w-4 h-4"/></button>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div>
-                                                    <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
-                                                    <input
-                                                        type="text"
-                                                        id={titleKey}
-                                                        name={titleKey}
-                                                        value={(presentationData as any)[titleKey] || ''}
-                                                        onChange={handleInputChange}
-                                                        className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
-                                                    />
-                                                </div>
-                                                {currentMode === 'text' ? (
-                                                    <div>
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
-                                                            <button onClick={() => handleParagraphify(textKey)} className="text-xs text-[var(--accent-color-400)] hover:text-[var(--accent-color-300)] font-semibold transition flex items-center gap-1">
-                                                                <ParagraphIcon className="w-3 h-3" />
-                                                                Paragraphify
-                                                            </button>
+                                            return (
+                                            <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <h3 className="font-semibold text-[var(--text-primary)]">{field.label}</h3>
+                                                    {field.types.length > 1 && (
+                                                        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
+                                                            <button onClick={() => handleModeChange(field.key, 'text')} className={`px-2 py-1 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><TextIcon className="w-4 h-4"/></button>
+                                                            <button onClick={() => handleModeChange(field.key, 'image')} className={`px-2 py-1 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><ImageIcon className="w-4 h-4"/></button>
                                                         </div>
-                                                        <textarea
-                                                            id={textKey}
-                                                            name={textKey}
-                                                            value={(presentationData as any)[textKey] || ''}
-                                                            onChange={handleInputChange}
-                                                            className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
-                                                        <FileUpload
-                                                            id={imagesKey}
-                                                            onFileSelect={(files) => handleFileChange(field.key, files)}
-                                                            multiple={isMultiImage}
-                                                            accept="image/*"
-                                                            label="Click to upload"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )})}
-                                </div>
-                                 <div className="flex justify-end pt-4">
-                                    <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
-                                        {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </StepContainer>
-                    )}
-                    
-                    {currentStep === 2 && (
-                         <StepContainer>
-                            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)]">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3">
-                                        <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><PresentationIcon/></span>
-                                        {t('uploadTemplateTitle')}
-                                    </h2>
-                                </div>
-                                <FileUpload
-                                    id="template-upload"
-                                    onFileSelect={handleTemplateUpload}
-                                    accept=".pptx"
-                                    label={uploadedTemplate ? t('uploadTemplateSelected').replace('{fileName}', uploadedTemplate.name) : t('uploadTemplateLabel')}
-                                />
-                                <div className="flex justify-between pt-6">
-                                    <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
-                                        <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
-                                    </button>
-                                    <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
-                                        {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </StepContainer>
-                    )}
+                                                    )}
+                                                </div>
 
-                    {currentStep === 3 && (
-                        <StepContainer>
-                             <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] text-center">
-                                <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 justify-center mb-4">{t('finalMessage')}</h2>
-                                <button 
-                                    onClick={handleGenerate} 
-                                    disabled={isGenerateDisabled}
-                                    className={`w-full max-w-xs mx-auto py-3 px-6 rounded-lg text-lg font-semibold transition-all duration-300 ease-in-out flex items-center justify-center gap-2
-                                        ${isGenerateDisabled 
-                                            ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
-                                            : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
-                                    }>
-                                    {isLoading ? <><LoaderIcon /> {t('generatingButton')}</> : <><DownloadIcon/> {t('generateButton')}</>}
-                                </button>
-                                <div className="flex justify-start pt-6">
-                                    <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
-                                        <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
-                                    </button>
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div>
+                                                        <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            id={titleKey}
+                                                            name={titleKey}
+                                                            value={(presentationData as any)[titleKey] || ''}
+                                                            onChange={handleInputChange}
+                                                            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                        />
+                                                    </div>
+                                                    {currentMode === 'text' ? (
+                                                        <div>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
+                                                                <button onClick={() => handleParagraphify(textKey)} className="text-xs text-[var(--accent-color-400)] hover:text-[var(--accent-color-300)] font-semibold transition flex items-center gap-1">
+                                                                    <ParagraphIcon className="w-3 h-3" />
+                                                                    Paragraphify
+                                                                </button>
+                                                            </div>
+                                                            <textarea
+                                                                id={textKey}
+                                                                name={textKey}
+                                                                value={(presentationData as any)[textKey] || ''}
+                                                                onChange={handleInputChange}
+                                                                className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
+                                                            <FileUpload
+                                                                id={imagesKey}
+                                                                onFileSelect={(files) => handleFileChange(field.key, files)}
+                                                                multiple={isMultiImage}
+                                                                accept="image/*"
+                                                                label="Click to upload"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )})}
+                                    </div>
+                                     <div className="flex justify-end pt-4">
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
+                                            {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                             <div className="h-10 text-center mt-6">
-                                {isLoading && (
-                                    <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
-                                        <LoaderIcon />
-                                        <p>{statusMessage}</p>
+                            </StepContainer>
+                        )}
+                        
+                        {currentStep === 2 && (
+                             <StepContainer>
+                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)]">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3">
+                                            <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><PresentationIcon/></span>
+                                            {t('uploadTemplateTitle')}
+                                        </h2>
                                     </div>
-                                )}
-                                {!isLoading && statusMessage && !error && (
-                                    <p className="text-green-400">{statusMessage}</p>
-                                )}
-                                {error && (
-                                    <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
-                                        <AlertTriangleIcon />
-                                        <p>{error}</p>
+                                    <FileUpload
+                                        id="template-upload"
+                                        onFileSelect={handleTemplateUpload}
+                                        accept=".pptx"
+                                        label={uploadedTemplate ? t('uploadTemplateSelected').replace('{fileName}', uploadedTemplate.name) : t('uploadTemplateLabel')}
+                                    />
+                                    <div className="flex justify-between pt-6">
+                                        <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
+                                            <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
+                                        </button>
+                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
+                                            {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                )}
-                            </div>
-                        </StepContainer>
-                    )}
-                </main>
+                                </div>
+                            </StepContainer>
+                        )}
+
+                        {currentStep === 3 && (
+                            <StepContainer>
+                                 <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] text-center">
+                                    <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 justify-center mb-4">{t('finalMessage')}</h2>
+                                    <button 
+                                        onClick={handleGenerate} 
+                                        disabled={isGenerateDisabled}
+                                        className={`w-full max-w-xs mx-auto py-3 px-6 rounded-lg text-lg font-semibold transition-all duration-300 ease-in-out flex items-center justify-center gap-2
+                                            ${isGenerateDisabled 
+                                                ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+                                                : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
+                                        }>
+                                        {isLoading ? <><LoaderIcon /> {t('generatingButton')}</> : <><DownloadIcon/> {t('generateButton')}</>}
+                                    </button>
+                                    <div className="flex justify-start pt-6">
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
+                                            <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
+                                        </button>
+                                    </div>
+                                </div>
+                                 <div className="h-10 text-center mt-6">
+                                    {isLoading && (
+                                        <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
+                                            <LoaderIcon />
+                                            <p>{statusMessage}</p>
+                                        </div>
+                                    )}
+                                    {!isLoading && statusMessage && !error && (
+                                        <p className="text-green-400">{statusMessage}</p>
+                                    )}
+                                    {error && (
+                                        <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
+                                            <AlertTriangleIcon />
+                                            <p>{error}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </StepContainer>
+                        )}
+                    </main>
+                </div>
             </div>
             
             <Modal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} title="How to Create a PPTX Template">
@@ -440,22 +447,45 @@ const App: React.FC = () => {
                 }
                 
                 :root.dark {
-                    --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155; --bg-hover: #475569;
-                    --text-primary: #f1f5f9; --text-secondary: #94a3b8;
-                    --border-primary: #334155; --border-secondary: #475569;
+                    --bg-primary: #0f172a;
+                    --bg-secondary: rgba(30, 41, 59, 0.5);
+                    --bg-tertiary: rgba(51, 65, 85, 0.5);
+                    --bg-hover: rgba(71, 85, 105, 0.6);
+                    --text-primary: #f1f5f9;
+                    --text-secondary: #94a3b8;
+                    --border-primary: rgba(51, 65, 85, 0.7);
+                    --border-secondary: rgba(71, 85, 105, 0.5);
                 }
                 :root.light {
-                    --bg-primary: #f1f5f9; --bg-secondary: #ffffff; --bg-tertiary: #e2e8f0; --bg-hover: #f1f5f9;
-                    --text-primary: #0f172a; --text-secondary: #475569;
-                    --border-primary: #cbd5e1; --border-secondary: #e2e8f0;
+                    --bg-primary: #f1f5f9;
+                    --bg-secondary: rgba(255, 255, 255, 0.5);
+                    --bg-tertiary: rgba(226, 232, 240, 0.5);
+                    --bg-hover: rgba(241, 245, 249, 0.7);
+                    --text-primary: #0f172a;
+                    --text-secondary: #475569;
+                    --border-primary: rgba(203, 213, 225, 0.6);
+                    --border-secondary: rgba(226, 232, 240, 0.7);
                 }
 
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes blob {
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
+                }
+
                 .animate-\\[fadeIn_0\\.5s_ease-in-out\\] {
                     animation: fadeIn 0.5s ease-in-out;
+                }
+                 .animate-\\[blob_7s_infinite\\] {
+                    animation: blob 7s infinite;
+                }
+                 .animate-\\[blob_10s_infinite_4s\\] {
+                    animation: blob 10s infinite 4s;
                 }
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

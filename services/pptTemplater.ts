@@ -98,9 +98,26 @@ const getNextRid = (doc: XMLDocument): number => {
 }
 
 /**
+ * Finds the highest slide ID number from presentation.xml to avoid collisions.
+ */
+const getNextXmlSlideId = (doc: XMLDocument): number => {
+    let maxId = 0;
+    const sldIds = doc.querySelectorAll('sldId');
+    sldIds.forEach(idNode => {
+        const idVal = idNode.getAttribute('id');
+        if (idVal) {
+            const num = parseInt(idVal, 10);
+            if (num > maxId) maxId = num;
+        }
+    });
+    // According to specs, it must be >= 256.
+    return Math.max(maxId + 1, 256);
+};
+
+
+/**
  * Replaces all non-splittable placeholders in a given slide XML.
  */
-// FIX: Refactored to use a callback with string.replace for safer and more efficient placeholder substitution. This avoids iterating over a modified collection and fixes the TypeScript error by removing the problematic code structure.
 const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationData, splittableKey: string | null) => {
     const textNodes = slideXmlDoc.querySelectorAll('t');
     textNodes.forEach(node => {
@@ -170,6 +187,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
 
     const originalSlideIds = Array.from(slideIdList.querySelectorAll('sldId'));
     let slideInsertionIndex = 0;
+    let nextAvailableSlideId = getNextXmlSlideId(presXmlDoc);
 
     for (const sldId of originalSlideIds) {
         slideInsertionIndex++;
@@ -214,7 +232,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                             specificEnding = endings[language].doaAtasPersembahan;
                         }
 
-                        // A text needs special chunking if it requires an ending, even if it's short.
                         if (specificEnding && textValue.trim().length > 0) {
                             needsChunking = true;
                         }
@@ -224,7 +241,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                             if (specificEnding) {
                                 chunks = chunkTextWithEnding(textValue, specificEnding, MAX_TEXT_LENGTH);
                             } else {
-                                // This branch is only for long texts that don't have special endings.
                                 chunks = chunkText(textValue, MAX_TEXT_LENGTH);
                             }
                             break; 
@@ -236,61 +252,49 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         }
 
 
-        // If no splitting is needed for this slide, do a simple replacement and continue
         if (!splittableKey) {
             replaceSimplePlaceholders(slideXmlDoc, data, null);
             zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
             continue;
         }
-
-        // --- SLIDE DUPLICATION LOGIC ---
         
-        // On the original slide, replace other placeholders and the first chunk
         replaceSimplePlaceholders(slideXmlDoc, data, splittableKey);
         replaceChunkPlaceholder(slideXmlDoc, splittableKey, chunks[0]);
         zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
         
-        // Get original slide rels
         const slideRelsPath = slidePath.replace('slides/', 'slides/_rels/') + '.rels';
         const slideRelsStr = await zip.file(slideRelsPath)?.async('string');
 
+        let nextSlideNumCounter = getNextSlideNum(zip);
 
-        // Duplicate the slide for the rest of the chunks
         for (let i = 1; i < chunks.length; i++) {
             const chunk = chunks[i];
-
-            // A. Generate new IDs
-            const newSlideNum = getNextSlideNum(zip);
+            const newSlideNum = nextSlideNumCounter++;
             const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
-            const newSlideId = 256 + newSlideNum; // A common convention, not a strict rule
+            const newSlideId = nextAvailableSlideId++;
 
-            // B. Create new slide file
             const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
-            const newSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml'); // Clone from original
+            const newSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
             replaceSimplePlaceholders(newSlideXmlDoc, data, splittableKey);
             replaceChunkPlaceholder(newSlideXmlDoc, splittableKey, chunk);
             zip.file(newSlidePath, serializer.serializeToString(newSlideXmlDoc));
 
-            // C. Create new slide rels file (if original had one)
             if (slideRelsStr) {
                 const newSlideRelsPath = newSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
                 zip.file(newSlideRelsPath, slideRelsStr);
             }
 
-            // D. Update [Content_Types].xml
             const newOverride = contentTypesXmlDoc.createElement('Override');
             newOverride.setAttribute('PartName', `/${newSlidePath}`);
             newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
             contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
             
-            // E. Update ppt/_rels/presentation.xml.rels
             const newPresRel = presRelsXmlDoc.createElement('Relationship');
             newPresRel.setAttribute('Id', newPresRelId);
             newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
             newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
             presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
             
-            // F. Update ppt/presentation.xml to insert the new slide in order
             const newSldIdNode = presXmlDoc.createElementNS('http://purl.oclc.org/ooxml/presentationml/main', 'p:sldId');
             newSldIdNode.setAttribute('id', String(newSlideId));
             newSldIdNode.setAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'r:id', newPresRelId);
@@ -301,12 +305,73 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         }
     }
 
-    // Write updated core files back to zip
+    // --- SLIDE RE-NUMBERING AND SANITIZATION ---
+    const finalSlideIdNodes = Array.from(slideIdList.querySelectorAll('sldId'));
+    const typesNode = contentTypesXmlDoc.querySelector('Types');
+    if (!typesNode) throw new Error('Invalid [Content_Types].xml: <Types> not found.');
+
+    const slideDataCache = [];
+    for (const sldIdNode of finalSlideIdNodes) {
+        const rId = sldIdNode.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+        const relNode = presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`);
+        const oldTargetPath = relNode?.getAttribute('Target');
+        if (!rId || !relNode || !oldTargetPath) continue;
+        
+        const oldFullPath = `ppt/${oldTargetPath}`;
+        const oldRelsPath = `ppt/slides/_rels/${oldTargetPath.split('/')[1]}.rels`;
+
+        const slideContent = await zip.file(oldFullPath)?.async('string');
+        const relsContent = zip.file(oldRelsPath) ? await zip.file(oldRelsPath).async('string') : null;
+
+        if (slideContent) {
+            slideDataCache.push({ relNode, slideContent, relsContent });
+        }
+    }
+
+    zip.folder('ppt/slides').forEach((_, file) => {
+        if (!file.dir) zip.remove(file.name);
+    });
+    
+    Array.from(typesNode.querySelectorAll('Override')).forEach(override => {
+        const partName = override.getAttribute('PartName');
+        if (partName && partName.startsWith('/ppt/slides/')) {
+            override.remove();
+        }
+    });
+
+    for (let i = 0; i < slideDataCache.length; i++) {
+        const cacheItem = slideDataCache[i];
+        const newSlideNum = i + 1;
+        
+        const newTargetPath = `slides/slide${newSlideNum}.xml`;
+        const newFullPath = `ppt/${newTargetPath}`;
+        const newRelsPath = `ppt/slides/_rels/slide${newSlideNum}.xml.rels`;
+        
+        zip.file(newFullPath, cacheItem.slideContent);
+        if (cacheItem.relsContent) {
+            zip.file(newRelsPath, cacheItem.relsContent);
+        }
+        
+        cacheItem.relNode.setAttribute('Target', newTargetPath);
+
+        const newOverride = contentTypesXmlDoc.createElement('Override');
+        newOverride.setAttribute('PartName', `/${newFullPath}`);
+        newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+        typesNode.appendChild(newOverride);
+        
+        if (cacheItem.relsContent) {
+            const newRelsOverride = contentTypesXmlDoc.createElement('Override');
+            newRelsOverride.setAttribute('PartName', `/${newRelsPath}`);
+            newRelsOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.package.relationships+xml');
+            typesNode.appendChild(newRelsOverride);
+        }
+    }
+
+
     zip.file('ppt/presentation.xml', serializer.serializeToString(presXmlDoc));
     zip.file('ppt/_rels/presentation.xml.rels', serializer.serializeToString(presRelsXmlDoc));
     zip.file('[Content_Types].xml', serializer.serializeToString(contentTypesXmlDoc));
 
-    // Generate and download the final PPTX
     const newPptxBlob = await zip.generateAsync({
         type: 'blob',
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',

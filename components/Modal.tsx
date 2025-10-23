@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 
 interface ModalProps {
@@ -32,7 +33,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             aria-labelledby="modal-title"
         >
             <div
-                className={`bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl shadow-xl w-full max-w-2xl flex flex-col transition-all duration-300 ease-in-out
+                className={`bg-[var(--bg-secondary)] backdrop-blur-lg border border-[var(--border-primary)] rounded-2xl shadow-xl w-full max-w-2xl flex flex-col transition-all duration-300 ease-in-out
                     ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`
                 }
                 onClick={(e) => e.stopPropagation()}
