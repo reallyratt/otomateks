@@ -53,6 +53,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, la
         }
     }, [multiple, onFileSelect]);
 
+    const fileTypeDescription = (accept: string) => {
+        if (accept.includes('.docx')) return 'DOCX file';
+        if (accept.includes('.pptx')) return 'PPTX file';
+        if (accept.includes('.xlsx')) return 'XLSX file';
+        if (accept.includes('image')) return 'PNG, JPG, etc.';
+        return 'File';
+    };
+
+
     return (
         <label
             htmlFor={id}
@@ -69,7 +78,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, la
                     <span className="font-semibold text-[var(--accent-color-400)]">{label}</span> or drag and drop
                 </p>
                 <p className="text-xs text-gray-500">
-                    {accept === '.docx' ? 'DOCX file' : (accept === '.pptx' ? 'PPTX file' : 'PNG, JPG, etc.')}
+                    {fileTypeDescription(accept)}
                 </p>
             </div>
             <input id={id} type="file" className="hidden" accept={accept} multiple={multiple} onChange={handleFileChange} />

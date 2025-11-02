@@ -1,6 +1,6 @@
 export type Language = 'indonesia' | 'jawa' | 'english';
 
-export type MassType = 'biasa' | 'manten' | 'memule' | 'kamisPutih' | 'jumatAgung' | 'paskah' | 'natal';
+export type MassType = 'biasa' | 'manten' | 'memule' | 'kamisPutih' | 'jumatAgung' | 'paskah' | 'natal' | 'dataEntry';
 
 export interface PresentationData {
   presentationTitle?: string;

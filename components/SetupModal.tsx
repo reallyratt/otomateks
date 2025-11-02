@@ -12,6 +12,7 @@ interface SetupModalProps {
 
 const massOptions: { id: MassType; label: string; enabled: boolean }[] = [
     { id: 'biasa', label: 'Misa Biasa (Harian/Mingguan)', enabled: true },
+    { id: 'dataEntry', label: 'Data Entry (from Excel)', enabled: true },
     { id: 'manten', label: 'Misa Manten', enabled: false },
     { id: 'memule', label: 'Misa Memule', enabled: false },
     { id: 'kamisPutih', label: 'Kamis Putih', enabled: false },

@@ -9,13 +9,15 @@ interface TutorialGuideProps {
 }
 
 const templateMap: { [key in MassType]: { name: string; url: string; enabled: boolean } } = {
-    biasa: { name: 'Template Misa Biasa', url: 'https://komsosnas.parokipugeran.org/Template%20Teks%20Misa/Template%20Misa%20Biasa.pptx', enabled: true },
+    biasa: { name: 'Template Misa Biasa', url: 'https://komsosnas.parokipugeran.org/Template%20Teks%20Misa/Template%20Misa%20biasa.pptx', enabled: true },
     manten: { name: 'Template Misa Manten', url: '#', enabled: false },
     memule: { name: 'Template Misa Memule', url: '#', enabled: false },
     kamisPutih: { name: 'Template Kamis Putih', url: '#', enabled: false },
     jumatAgung: { name: 'Template Jumat Agung', url: '#', enabled: false },
     paskah: { name: 'Template Hari Paskah', url: '#', enabled: false },
     natal: { name: 'Template Natal', url: '#', enabled: false },
+    // FIX: Added missing 'dataEntry' to satisfy the MassType enum.
+    dataEntry: { name: 'User-Provided Template', url: '#', enabled: false },
 };
 
 const Code: React.FC<{children: React.ReactNode}> = ({ children }) => <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)] font-mono text-xs">{children}</code>;
