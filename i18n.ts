@@ -3,9 +3,8 @@ import { Language } from './types';
 export const translations: { [key: string]: { [key: string]: string } } = {
   english: {
     // Header
-    appSubtitle: 'Mass Text Automation for Komsos Pugeran',
+    appSubtitle: 'Otomatisasi Teks Misa Komsos Pugeran',
     // Menu
-    menuSetup: 'Mass Setup',
     menuTutorial: 'Tutorial',
     menuSettings: 'Settings',
     menuDevlog: 'Devlog',
@@ -24,14 +23,21 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     generateButton: 'Generate & Download',
     generatingButton: 'Generating...',
     // Modals
-    setupModalTitle: 'Mass Setup',
     tutorialModalTitle: 'Tutorial',
     settingsModalTitle: 'Settings',
     devlogModalTitle: 'Developer Log',
     templateCreationGuideTitle: "How to Create a PPTX Template",
-    // Setup Modal
-    languageLabel: 'Mass Language',
-    massTypeLabel: 'Mass Type',
+    // Setup Page (Step 1)
+    bahasa: 'Language',
+    tipeMisa: 'Mass Type',
+    mingguBiasa: 'Ordinary Mass',
+    misaKhusus: 'Special Mass',
+    hariRaya: 'Feast Day',
+    lainnya: 'Other',
+    dataEntry: 'Data Entry (from Excel)',
+    // File Setup (Step 2)
+    namaFile: 'File Name',
+    ruangKerja: 'Workspace',
     // Settings Modal
     settingsLanguageLabel: 'App Language',
     settingsThemeLabel: 'Theme',
@@ -43,7 +49,6 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     // Header
     appSubtitle: 'Otomatisasi Teks Misa Komsos Pugeran',
     // Menu
-    menuSetup: 'Pengaturan Misa',
     menuTutorial: 'Tutorial',
     menuSettings: 'Pengaturan',
     menuDevlog: 'Devlog',
@@ -62,14 +67,21 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     generateButton: 'Buat & Unduh',
     generatingButton: 'Membuat...',
     // Modals
-    setupModalTitle: 'Pengaturan Misa',
     tutorialModalTitle: 'Tutorial',
     settingsModalTitle: 'Pengaturan',
     devlogModalTitle: 'Log Pengembang',
     templateCreationGuideTitle: "Cara Membuat Template PPTX",
-     // Setup Modal
-    languageLabel: 'Bahasa Misa',
-    massTypeLabel: 'Tipe Misa',
+    // Setup Page (Step 1)
+    bahasa: 'Bahasa',
+    tipeMisa: 'Tipe Misa',
+    mingguBiasa: 'Minggu Biasa',
+    misaKhusus: 'Misa Khusus',
+    hariRaya: 'Hari Raya',
+    lainnya: 'Lainnya',
+    dataEntry: 'Data Entry (dari Excel)',
+    // File Setup (Step 2)
+    namaFile: 'Nama File',
+    ruangKerja: 'Ruang Kerja',
     // Settings Modal
     settingsLanguageLabel: 'Bahasa Aplikasi',
     settingsThemeLabel: 'Tema',

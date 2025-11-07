@@ -1,10 +1,9 @@
+
 import React from 'react';
 import { Language } from '../types';
 import { GlobeIcon, SunIcon, MoonIcon, PaletteIcon } from './icons';
 
 interface SettingsModalProps {
-    appLanguage: 'english' | 'indonesia';
-    onAppLanguageChange: (lang: 'english' | 'indonesia') => void;
     theme: 'light' | 'dark';
     onThemeChange: (theme: 'light' | 'dark') => void;
     accentColor: string;
@@ -22,8 +21,6 @@ const accentColors = [
 ];
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
-    appLanguage,
-    onAppLanguageChange,
     theme,
     onThemeChange,
     accentColor,
@@ -32,28 +29,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
     return (
         <div className="text-[var(--text-secondary)] space-y-6">
-            {/* App Language Section */}
-            <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-[var(--accent-color-400)] flex items-center gap-2">
-                    <GlobeIcon className="w-5 h-5" />
-                    {t('settingsLanguageLabel')}
-                </h3>
-                <div className="flex items-center gap-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
-                    <button
-                        onClick={() => onAppLanguageChange('english')}
-                        className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${appLanguage === 'english' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
-                    >
-                        English
-                    </button>
-                    <button
-                        onClick={() => onAppLanguageChange('indonesia')}
-                        className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${appLanguage === 'indonesia' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
-                    >
-                        Indonesia
-                    </button>
-                </div>
-            </div>
-
              {/* Theme Section */}
             <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-[var(--accent-color-400)] flex items-center gap-2">

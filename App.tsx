@@ -3,13 +3,12 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Language, PresentationData, MassType } from './types';
 import { translations } from './i18n';
 import { processTemplate } from './services/pptTemplater';
-import { DocumentIcon, PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon } from './components/icons';
+import { PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon } from './components/icons';
 import { FileUpload } from './components/FileUpload';
 import { Modal } from './components/Modal';
 import { TemplateCreationGuide } from './components/TemplateCreationGuide';
 import { TutorialGuide } from './components/TutorialGuide';
 import { DropdownMenu } from './components/DropdownMenu';
-import { SetupModal } from './components/SetupModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DevlogModal } from './components/DevlogModal';
 import { DataEntryWorkflow } from './components/DataEntryWorkflow';
@@ -59,7 +58,7 @@ const formConfig: FormField[] = [
     { key: 'laguPenutup', label: 'Lagu Penutup', types: ['text', 'multi-image'] },
 ];
 
-const defaultTitles: PresentationData = {
+const defaultTitlesIndonesia: PresentationData = {
     laguPembukaTitle: '(umat berdiri) NYANYIAN PERARAKAN MASUK',
     tuhanKasihanilahKami1Title: 'TUHAN KASIHANILAH KAMI',
     tuhanKasihanilahKami2Title: 'TUHAN KASIHANILAH KAMI',
@@ -95,6 +94,42 @@ const defaultTitles: PresentationData = {
     laguPenutupTitle: '(umat berdiri) NYANYIAN PERARAKAN KELUAR',
 };
 
+const defaultTitlesJawa: PresentationData = {
+    laguPembukaTitle: '(umat jumeneng) KIDUNG PAMBUKA',
+    tuhanKasihanilahKami1Title: 'GUSTI NYUWUN KAWELASAN',
+    tuhanKasihanilahKami2Title: 'GUSTI NYUWUN KAWELASAN',
+    tuhanKasihanilahKami3Title: 'GUSTI NYUWUN KAWELASAN',
+    doaKolektaTitle: '(umat jumeneng) DOA KOLEKTA',
+    bacaan1Title: '(umat lenggah) WAOSAN I | (Sumber)',
+    mazmurTanggapanRefrenTitle: '(umat lenggah) MAZMUR TANGGAPAN',
+    mazmurTanggapanAyat1Title: '(umat lenggah) MAZMUR TANGGAPAN',
+    mazmurTanggapanAyat2Title: '(umat lenggah) MAZMUR TANGGAPAN',
+    mazmurTanggapanAyat3Title: '(umat lenggah) MAZMUR TANGGAPAN',
+    bacaan2Title: '(umat lenggah) WAOSAN II | (Sumber)',
+    baitPengantarInjilRefrenTitle: '(umat jumeneng) BAIT PENGANTAR INJIL',
+    baitPengantarInjilAyatTitle: '(umat jumeneng) BAIT PENGANTAR INJIL',
+    bacaanInjilTitle: '(umat lenggah) WAOSAN INJIL | (Sumber)',
+    doaUmat1ImamTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat2LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat3LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat4LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat5LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat6LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat7LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat8LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat9LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat10LektorTitle: '(umat jumeneng) DOA UMAT',
+    doaUmat11ImamTitle: '(umat jumeneng) DOA UMAT',
+    doaUmatJawabanUmatTitle: '(umat jumeneng) DOA UMAT',
+    laguPersembahanTitle: '(umat lenggah) KIDUNG PERSEMBAHAN',
+    doaAtasPersembahanTitle: '(umat jumeneng) DOA PISUNGSUNG',
+    laguKomuniTitle: '(umat lenggah) KIDUNG KOMUNI',
+    laguKomuni2Title: '(umat lenggah) KIDUNG KOMUNI',
+    laguKomuni3Title: '(umat lenggah) KIDUNG KOMUNI',
+    doaSesudahKomuniTitle: '(umat jumeneng) DOA SASAMPUNIPUN KOMUNI',
+    laguPenutupTitle: '(umat jumeneng) KIDUNG PANUTUP',
+};
+
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -110,7 +145,9 @@ const StepContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
 );
 
 const App: React.FC = () => {
-    const [presentationData, setPresentationData] = useState<PresentationData>(defaultTitles);
+    const [massLanguage, setMassLanguage] = useState<Language>('indonesia');
+    const [massType, setMassType] = useState<MassType>('mingguan');
+    const [presentationData, setPresentationData] = useState<PresentationData>(defaultTitlesIndonesia);
     const [inputModes, setInputModes] = useState<{ [key: string]: 'text' | 'image' }>({});
     const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -118,21 +155,49 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [isTutorialOpen, setIsTutorialOpen] = useState(false);
-    const [isSetupOpen, setIsSetupOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isDevlogOpen, setIsDevlogOpen] = useState(false);
-    const [massLanguage, setMassLanguage] = useState<Language>('indonesia');
-    const [massType, setMassType] = useState<MassType>('biasa');
     const [currentStep, setCurrentStep] = useState(1);
     
     // Theming and Language State
-    const [appLanguage, setAppLanguage] = useState<'english' | 'indonesia'>('english');
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [accentColor, setAccentColor] = useState('sky');
 
     const t = useCallback((key: string) => {
-        return translations[appLanguage][key] || key;
-    }, [appLanguage]);
+        return translations.indonesia[key] || key;
+    }, []);
+
+    const massOptions: { category: string; options: { id: MassType; label: string; enabled: boolean }[] }[] = [
+        {
+            category: t('mingguBiasa'),
+            options: [
+                { id: 'harian', label: 'Harian', enabled: true },
+                { id: 'mingguan', label: 'Mingguan', enabled: true },
+            ],
+        },
+        {
+            category: t('misaKhusus'),
+            options: [
+                { id: 'manten', label: 'Misa Manten', enabled: false },
+                { id: 'memule', label: 'Misa Memule', enabled: false },
+            ],
+        },
+        {
+            category: t('hariRaya'),
+            options: [
+                { id: 'natal', label: 'Natal', enabled: false },
+                { id: 'kamisPutih', label: 'Kamis Putih', enabled: false },
+                { id: 'jumatAgung', label: 'Jumat Agung', enabled: false },
+                { id: 'malamPaskah', label: 'Malam Paskah', enabled: false },
+            ]
+        },
+        {
+            category: t('lainnya'),
+            options: [
+                 { id: 'dataEntry', label: t('dataEntry'), enabled: true },
+            ]
+        }
+    ];
 
     useEffect(() => {
         const root = document.documentElement;
@@ -143,6 +208,24 @@ const App: React.FC = () => {
     useEffect(() => {
         document.documentElement.dataset.accent = accentColor;
     }, [accentColor]);
+
+     useEffect(() => {
+        const newDefaults = massLanguage === 'jawa' ? defaultTitlesJawa : defaultTitlesIndonesia;
+        const typeText = massType.charAt(0).toUpperCase() + massType.slice(1);
+        const langText = massLanguage === 'indonesia' ? 'Bahasa Indonesia' : 'Bahasa Jawa';
+        const newTitle = `[Tahun C] ${typeText} - ${langText} - Minggu Biasa I (27 04 07)`;
+        
+        // Only reset fields, keep the generated title
+        setPresentationData(prev => ({ ...newDefaults, presentationTitle: prev.presentationTitle || newTitle }));
+
+    }, [massLanguage, massType]);
+
+    useEffect(() => {
+        const typeText = massType.charAt(0).toUpperCase() + massType.slice(1);
+        const langText = massLanguage === 'indonesia' ? 'Bahasa Indonesia' : 'Bahasa Jawa';
+        const newTitle = `[Tahun C] ${typeText} - ${langText} - Minggu Biasa I (27 04 07)`;
+        setPresentationData(prev => ({ ...prev, presentationTitle: newTitle }));
+    }, [massLanguage, massType]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -225,175 +308,260 @@ const App: React.FC = () => {
                                 {t('appSubtitle')}
                             </p>
                         </div>
-                        <DropdownMenu onSetupClick={() => setIsSetupOpen(true)} onTutorialClick={() => setIsTutorialOpen(true)} onSettingsClick={() => setIsSettingsOpen(true)} onDevlogClick={() => setIsDevlogOpen(true)} t={t} />
+                        <DropdownMenu onTutorialClick={() => setIsTutorialOpen(true)} onSettingsClick={() => setIsSettingsOpen(true)} onDevlogClick={() => setIsDevlogOpen(true)} t={t} />
                     </header>
 
                     <main className="space-y-6">
-                        <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-2">
-                            <label htmlFor="presentationTitle" className="block text-lg font-bold text-[var(--accent-color-400)]">
-                                {t('mainTitleLabel')}
-                            </label>
-                            <input
-                                type="text"
-                                id="presentationTitle"
-                                name="presentationTitle"
-                                value={presentationData.presentationTitle || ''}
-                                onChange={handleInputChange}
-                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
-                                placeholder={t('mainTitlePlaceholder')}
-                            />
-                        </div>
-
-                        {massType === 'dataEntry' ? (
-                            <DataEntryWorkflow presentationTitle={presentationData.presentationTitle || ''} />
-                        ) : (
-                            <>
-                                {currentStep === 1 && (
-                                    <StepContainer>
-                                        <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-4">
-                                            <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3"><span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><DocumentIcon/></span> {t('workspaceTitle')}</h2>
-                                            <div className="space-y-6">
-                                                {formConfig.map((field) => {
-                                                    const titleKey = `${field.key}Title`;
-                                                    const textKey = `${field.key}Text`;
-                                                    const imagesKey = `${field.key}Images`;
-                                                    const defaultMode = field.types.includes('text') ? 'text' : 'image';
-                                                    const currentMode = inputModes[field.key] || defaultMode;
-                                                    const isMultiImage = field.types.includes('multi-image');
-
-                                                    return (
-                                                    <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <h3 className="font-semibold text-[var(--text-primary)]">{field.label}</h3>
-                                                            {field.types.length > 1 && (
-                                                                <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
-                                                                    <button onClick={() => handleModeChange(field.key, 'text')} className={`px-2 py-1 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><TextIcon className="w-4 h-4"/></button>
-                                                                    <button onClick={() => handleModeChange(field.key, 'image')} className={`px-2 py-1 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}><ImageIcon className="w-4 h-4"/></button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 gap-4">
-                                                            <div>
-                                                                <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
-                                                                <input
-                                                                    type="text"
-                                                                    id={titleKey}
-                                                                    name={titleKey}
-                                                                    value={(presentationData as any)[titleKey] || ''}
-                                                                    onChange={handleInputChange}
-                                                                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
-                                                                />
-                                                            </div>
-                                                            {currentMode === 'text' ? (
-                                                                <div>
-                                                                    <div className="flex justify-between items-center mb-1">
-                                                                        <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
-                                                                        <button onClick={() => handleParagraphify(textKey)} className="text-xs text-[var(--accent-color-400)] hover:text-[var(--accent-color-300)] font-semibold transition flex items-center gap-1">
-                                                                            <ParagraphIcon className="w-3 h-3" />
-                                                                            Paragraphify
-                                                                        </button>
-                                                                    </div>
-                                                                    <textarea
-                                                                        id={textKey}
-                                                                        name={textKey}
-                                                                        value={(presentationData as any)[textKey] || ''}
-                                                                        onChange={handleInputChange}
-                                                                        className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <div>
-                                                                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
-                                                                    <FileUpload
-                                                                        id={imagesKey}
-                                                                        onFileSelect={(files) => handleFileChange(field.key, files)}
-                                                                        multiple={isMultiImage}
-                                                                        accept="image/*"
-                                                                        label="Click to upload"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )})}
-                                            </div>
-                                             <div className="flex justify-end pt-4">
-                                                <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
-                                                    {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                        {currentStep === 1 && (
+                             <StepContainer>
+                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-8">
+                                    {/* Language Section */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">
+                                            {t('bahasa')}
+                                        </h3>
+                                        <div className="flex items-center gap-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => setMassLanguage('indonesia')} 
+                                                className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${massLanguage === 'indonesia' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                            >
+                                                Indonesia
+                                            </button>
+                                            <button 
+                                                onClick={() => setMassLanguage('jawa')} 
+                                                className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${massLanguage === 'jawa' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                            >
+                                                Jawa
+                                            </button>
                                         </div>
-                                    </StepContainer>
-                                )}
-                                
-                                {currentStep === 2 && (
-                                     <StepContainer>
-                                        <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)]">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3">
-                                                    <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><PresentationIcon/></span>
-                                                    {t('uploadTemplateTitle')}
-                                                </h2>
-                                            </div>
+                                    </div>
+
+                                    {/* Mass Type Section */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">
+                                            {t('tipeMisa')}
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {massOptions.map((group) => (
+                                                <div key={group.category}>
+                                                    <p className="text-sm font-bold text-[var(--text-secondary)] mb-2">{group.category}</p>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        {group.options.map((option) => (
+                                                            <label 
+                                                                key={option.id}
+                                                                className={`flex items-center p-3 rounded-lg border transition-all duration-200 transform ${
+                                                                    !option.enabled
+                                                                        ? 'opacity-50 cursor-not-allowed'
+                                                                        : 'cursor-pointer hover:scale-[1.02] hover:border-[var(--accent-color-400)]'
+                                                                } ${
+                                                                    massType === option.id 
+                                                                        ? 'bg-[var(--accent-color-500)]/20 border-[var(--accent-color-500)]' 
+                                                                        : 'border-[var(--border-secondary)] hover:bg-[var(--bg-hover)]'
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name="massType"
+                                                                    value={option.id}
+                                                                    checked={massType === option.id}
+                                                                    onChange={() => setMassType(option.id as MassType)}
+                                                                    disabled={!option.enabled}
+                                                                    className="w-4 h-4 text-[var(--accent-color-500)] bg-[var(--bg-tertiary)] border-[var(--border-primary)] focus:ring-[var(--accent-color-600)] disabled:opacity-50"
+                                                                />
+                                                                <span className="ml-3 text-sm font-medium text-[var(--text-primary)]">{option.label}</span>
+                                                                {!option.enabled && <span className="ml-auto text-xs text-yellow-400 bg-yellow-900/50 px-2 py-1 rounded-full">Coming Soon</span>}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end pt-4">
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105" aria-label={t('nextButton')}>
+                                            <ArrowRightIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </StepContainer>
+                        )}
+                        
+                        {currentStep === 2 && (
+                             <StepContainer>
+                                {massType === 'dataEntry' ? (
+                                    <>
+                                        <DataEntryWorkflow presentationTitle={presentationData.presentationTitle || ''} />
+                                        <div className="flex justify-start pt-4">
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
+                                                <ArrowLeftIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6">
+                                        <div>
+                                            <label htmlFor="presentationTitle" className="block text-lg font-bold text-[var(--accent-color-400)] mb-2">
+                                                {t('namaFile')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="presentationTitle"
+                                                name="presentationTitle"
+                                                value={presentationData.presentationTitle || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                placeholder={t('mainTitlePlaceholder')}
+                                            />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-[var(--accent-color-400)] mb-2">
+                                                {t('uploadTemplateTitle')}
+                                            </h2>
                                             <FileUpload
                                                 id="template-upload"
                                                 onFileSelect={handleTemplateUpload}
                                                 accept=".pptx"
                                                 label={uploadedTemplate ? t('uploadTemplateSelected').replace('{fileName}', uploadedTemplate.name) : t('uploadTemplateLabel')}
                                             />
-                                            <div className="flex justify-between pt-6">
-                                                <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
-                                                    <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
-                                                </button>
-                                                <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105">
-                                                    {t('nextButton')} <ArrowRightIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
                                         </div>
-                                    </StepContainer>
-                                )}
 
-                                {currentStep === 3 && (
-                                    <StepContainer>
-                                         <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] text-center">
-                                            <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 justify-center mb-4">{t('finalMessage')}</h2>
-                                            <button 
-                                                onClick={handleGenerate} 
-                                                disabled={isGenerateDisabled}
-                                                className={`w-full max-w-xs mx-auto py-3 px-6 rounded-lg text-lg font-semibold transition-all duration-300 ease-in-out flex items-center justify-center gap-2
-                                                    ${isGenerateDisabled 
-                                                        ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
-                                                        : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
-                                                }>
-                                                {isLoading ? <><LoaderIcon /> {t('generatingButton')}</> : <><DownloadIcon/> {t('generateButton')}</>}
+                                        <div className="flex justify-between pt-6">
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
+                                                <ArrowLeftIcon className="w-4 h-4" />
                                             </button>
-                                            <div className="flex justify-start pt-6">
-                                                <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all">
-                                                    <ArrowLeftIcon className="w-4 h-4" /> {t('backButton')}
-                                                </button>
-                                            </div>
+                                            <button 
+                                                onClick={() => setCurrentStep(3)} 
+                                                disabled={!uploadedTemplate}
+                                                className={`flex items-center justify-center p-3 rounded-lg font-semibold text-white transition-all ${!uploadedTemplate ? 'bg-gray-500 cursor-not-allowed' : 'bg-[var(--accent-color-500)] hover:bg-[var(--accent-color-600)] transform hover:scale-105'}`} 
+                                                aria-label={t('nextButton')}
+                                            >
+                                                <ArrowRightIcon className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                         <div className="h-10 text-center mt-6">
-                                            {isLoading && (
-                                                <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
-                                                    <LoaderIcon />
-                                                    <p>{statusMessage}</p>
-                                                </div>
-                                            )}
-                                            {!isLoading && statusMessage && !error && (
-                                                <p className="text-green-400">{statusMessage}</p>
-                                            )}
-                                            {error && (
-                                                <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
-                                                    <AlertTriangleIcon />
-                                                    <p>{error}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </StepContainer>
+                                    </div>
                                 )}
-                            </>
+                            </StepContainer>
+                        )}
+                        
+                        {currentStep === 3 && massType !== 'dataEntry' && (
+                            <StepContainer>
+                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6">
+                                    <div className="space-y-6">
+                                        {formConfig.map((field) => {
+                                            const titleKey = `${field.key}Title`;
+                                            const textKey = `${field.key}Text`;
+                                            const imagesKey = `${field.key}Images`;
+                                            const defaultMode = field.types.includes('text') ? 'text' : 'image';
+                                            const currentMode = inputModes[field.key] || defaultMode;
+                                            const isMultiImage = field.types.includes('multi-image');
+
+                                            return (
+                                            <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                    <h3 className="text-lg font-bold text-[var(--accent-color-400)]">{field.label}</h3>
+                                                    {field.types.length > 1 && (
+                                                        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
+                                                            <button onClick={() => handleModeChange(field.key, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
+                                                            <button onClick={() => handleModeChange(field.key, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div>
+                                                        <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            id={titleKey}
+                                                            name={titleKey}
+                                                            value={(presentationData as any)[titleKey] || ''}
+                                                            onChange={handleInputChange}
+                                                            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                        />
+                                                    </div>
+                                                    {currentMode === 'text' ? (
+                                                        <div>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
+                                                                <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition" aria-label="Paragraphify Text">
+                                                                    <ParagraphIcon className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                            <textarea
+                                                                id={textKey}
+                                                                name={textKey}
+                                                                value={(presentationData as any)[textKey] || ''}
+                                                                onChange={handleInputChange}
+                                                                className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
+                                                            <FileUpload
+                                                                id={imagesKey}
+                                                                onFileSelect={(files) => handleFileChange(field.key, files)}
+                                                                multiple={isMultiImage}
+                                                                accept="image/*"
+                                                                label="Click to upload"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )})}
+                                    </div>
+                                     <div className="flex justify-between pt-4">
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
+                                            <ArrowLeftIcon className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => setCurrentStep(4)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105" aria-label={t('nextButton')}>
+                                            <ArrowRightIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </StepContainer>
+                        )}
+
+                        {currentStep === 4 && massType !== 'dataEntry' && (
+                            <StepContainer>
+                                 <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] text-center">
+                                    <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 justify-center mb-4">{t('finalMessage')}</h2>
+                                    <button 
+                                        onClick={handleGenerate} 
+                                        disabled={isGenerateDisabled}
+                                        className={`w-full max-w-xs mx-auto py-3 px-6 rounded-lg text-lg font-semibold transition-all duration-300 ease-in-out flex items-center justify-center gap-2
+                                            ${isGenerateDisabled 
+                                                ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+                                                : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
+                                        }>
+                                        {isLoading ? <><LoaderIcon className="w-4 h-4" /> {t('generatingButton')}</> : <><DownloadIcon className="w-4 h-4"/> {t('generateButton')}</>}
+                                    </button>
+                                    <div className="flex justify-start pt-6">
+                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
+                                            <ArrowLeftIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                 <div className="h-10 text-center mt-6">
+                                    {isLoading && (
+                                        <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
+                                            <LoaderIcon className="w-4 h-4"/>
+                                            <p>{statusMessage}</p>
+                                        </div>
+                                    )}
+                                    {!isLoading && statusMessage && !error && (
+                                        <p className="text-green-400">{statusMessage}</p>
+                                    )}
+                                    {error && (
+                                        <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
+                                            <AlertTriangleIcon className="w-4 h-4"/>
+                                            <p>{error}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </StepContainer>
                         )}
                     </main>
                 </div>
@@ -404,23 +572,11 @@ const App: React.FC = () => {
             </Modal>
 
             <Modal isOpen={isTutorialOpen} onClose={() => setIsTutorialOpen(false)} title={t('tutorialModalTitle')}>
-                <TutorialGuide massType={massType} appLanguage={appLanguage}/>
-            </Modal>
-
-            <Modal isOpen={isSetupOpen} onClose={() => setIsSetupOpen(false)} title={t('setupModalTitle')}>
-                <SetupModal
-                    massLanguage={massLanguage}
-                    onMassLanguageChange={setMassLanguage}
-                    massType={massType}
-                    onMassTypeChange={setMassType}
-                    t={t}
-                />
+                <TutorialGuide massType={massType} appLanguage={'indonesia'}/>
             </Modal>
 
              <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title={t('settingsModalTitle')}>
                 <SettingsModal
-                    appLanguage={appLanguage}
-                    onAppLanguageChange={setAppLanguage}
                     theme={theme}
                     onThemeChange={setTheme}
                     accentColor={accentColor}

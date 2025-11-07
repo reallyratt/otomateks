@@ -71,39 +71,51 @@ export const processDataEntryTemplate = async (
     templateFile: File,
     excelData: any[][],
     mappings: { [key: string]: string },
-    syncedColumn: string | null,
+    groupingColumn: string | null,
     linesPerSlide: number,
     presentationTitle: string
 ) => {
-    // 1. Process Data
-    let processedData = [...excelData];
-    if (syncedColumn) {
-        const syncColumnIndex = columnToIndex(syncedColumn);
-        if (syncColumnIndex !== -1) {
-            let lastValue = '';
-            processedData = processedData.map(row => {
-                const newRow = [...row];
-                if (newRow.length <= syncColumnIndex) return newRow;
-                const cellValue = newRow[syncColumnIndex];
-                if (cellValue === null || cellValue === undefined || String(cellValue).trim() === '') {
-                    newRow[syncColumnIndex] = lastValue;
-                } else {
-                    lastValue = String(cellValue);
+    let groupedData: any[][][] = [];
+    let isGroupingActive = false;
+
+    if (groupingColumn) {
+        const groupColumnIndex = columnToIndex(groupingColumn);
+        if (groupColumnIndex !== -1 && excelData.length > 0) {
+            isGroupingActive = true;
+            let currentGroup: any[][] = [];
+
+            for (const row of excelData) {
+                const cellValue = row.length > groupColumnIndex ? row[groupColumnIndex] : null;
+                const isCellEmpty = cellValue === null || cellValue === undefined || String(cellValue).trim() === '';
+
+                // If the cell is not empty and we already have a group, this is the start of a new group.
+                // Push the previous group to the results.
+                if (!isCellEmpty && currentGroup.length > 0) {
+                    groupedData.push(currentGroup);
+                    currentGroup = []; // Reset for the new group
                 }
-                return newRow;
-            });
+
+                // Add the current row to the current group.
+                currentGroup.push(row);
+            }
+
+            // After the loop, push the last remaining group.
+            if (currentGroup.length > 0) {
+                groupedData.push(currentGroup);
+            }
         }
     }
-
-    // 2. Group Data
-    const groupedData: any[][][] = [];
-    for (let i = 0; i < processedData.length; i += linesPerSlide) {
-        groupedData.push(processedData.slice(i, i + linesPerSlide));
+    
+    // Fallback to linesPerSlide if grouping is not active or fails
+    if (!isGroupingActive) {
+        for (let i = 0; i < excelData.length; i += linesPerSlide) {
+            groupedData.push(excelData.slice(i, i + linesPerSlide));
+        }
     }
     
     const zip = await JSZip.loadAsync(templateFile);
 
-    // 3. Load Core PPTX files
+    // Load Core PPTX files
     const presXmlStr = await zip.file('ppt/presentation.xml').async('string');
     const presXmlDoc = parser.parseFromString(presXmlStr, 'application/xml');
     const presRelsXmlStr = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
@@ -114,7 +126,6 @@ export const processDataEntryTemplate = async (
     const slideIdList = presXmlDoc.querySelector('sldIdLst');
     if (!slideIdList) throw new Error('<p:sldIdLst> not found.');
 
-    // 4. Get Template Slide (assuming the first slide is the template)
     const firstSldId = slideIdList.querySelector('sldId');
     if (!firstSldId) throw new Error('No slides found in the template.');
     const rId = firstSldId.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
@@ -126,7 +137,6 @@ export const processDataEntryTemplate = async (
     const templateSlideRelsPath = templateSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
     const templateSlideRelsStr = await zip.file(templateSlideRelsPath)?.async('string');
 
-    // Clear existing slides from the list
     while (slideIdList.firstChild) {
         slideIdList.removeChild(slideIdList.firstChild);
     }
@@ -134,7 +144,6 @@ export const processDataEntryTemplate = async (
     let nextAvailableSlideNum = getNextSlideNum(zip);
     let nextAvailableSlideId = getNextXmlSlideId(presXmlDoc);
 
-    // 5. Loop and Generate new slides
     for (const group of groupedData) {
         const newSlideNum = nextAvailableSlideNum++;
         const newSlideId = nextAvailableSlideId++;
@@ -147,21 +156,28 @@ export const processDataEntryTemplate = async (
             if (!node.textContent) return;
             node.textContent = node.textContent.replace(/{{([a-zA-Z0-9_]+)}}/g, (match, placeholder) => {
                 const columnLetter = mappings[placeholder];
-                if (!columnLetter) return match; // Keep placeholder if not mapped
+                if (!columnLetter) return match;
 
                 const columnIndex = columnToIndex(columnLetter);
-                if (columnIndex === -1) return match; // Keep placeholder if column letter is invalid
+                if (columnIndex === -1) return match;
 
+                const groupingColumnIndex = columnToIndex(groupingColumn);
+
+                // For the grouping column itself, only take the value from the first row of the group.
+                if (isGroupingActive && columnIndex === groupingColumnIndex) {
+                    return (group[0] && group[0].length > columnIndex) ? String(group[0][columnIndex]) : '';
+                }
+
+                // For all other columns, join the values from all rows in the group.
                 const values = group
                     .map(row => (row && row.length > columnIndex) ? row[columnIndex] : null)
-                    .filter(val => val !== null && val !== undefined)
+                    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
                     .map(String);
                 
                 return values.join('\n');
             });
         });
         
-        // Add new slide files and relationships
         const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
         zip.file(newSlidePath, serializer.serializeToString(newSlideXmlDoc));
         if (templateSlideRelsStr) {
@@ -186,27 +202,29 @@ export const processDataEntryTemplate = async (
         slideIdList.appendChild(newSldIdNode);
     }
     
-    // 6 & 7. Sanitize and Re-number (optional but good practice)
-    // The current loop already creates sequentially numbered slides.
-    // We just need to remove the original template files if they are not overwritten.
     const allFiles = Object.keys(zip.files);
     const generatedSlideFiles = new Set();
-    for(let i=1; i < nextAvailableSlideNum; i++) {
-        generatedSlideFiles.add(`ppt/slides/slide${i}.xml`);
+    const finalSlideCount = groupedData.length;
+    const startNum = nextAvailableSlideNum - finalSlideCount;
+
+    for(let i = 0; i < finalSlideCount; i++) {
+        generatedSlideFiles.add(`ppt/slides/slide${startNum + i}.xml`);
     }
+
     allFiles.forEach(fileName => {
         if (fileName.startsWith('ppt/slides/slide') && !generatedSlideFiles.has(fileName)) {
             zip.remove(fileName);
-            zip.remove(fileName.replace('slides/', 'slides/_rels/') + '.rels');
+            const relsFileName = fileName.replace('slides/', 'slides/_rels/') + '.rels';
+            if (zip.file(relsFileName)) {
+                zip.remove(relsFileName);
+            }
         }
     });
 
-    // Write back modified core XML files
     zip.file('ppt/presentation.xml', serializer.serializeToString(presXmlDoc));
     zip.file('ppt/_rels/presentation.xml.rels', serializer.serializeToString(presRelsXmlDoc));
     zip.file('[Content_Types].xml', serializer.serializeToString(contentTypesXmlDoc));
     
-    // 8. Generate and Download
     const newPptxBlob = await zip.generateAsync({
         type: 'blob',
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',

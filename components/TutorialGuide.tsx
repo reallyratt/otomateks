@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CogIcon, DocumentIcon, ImageIcon, ParagraphIcon, PresentationIcon, TextIcon, DownloadIcon, MoreVerticalIcon } from './icons';
 import { MassType } from '../types';
@@ -8,15 +9,15 @@ interface TutorialGuideProps {
     appLanguage: 'english' | 'indonesia';
 }
 
-const templateMap: { [key in MassType]: { name: string; url: string; enabled: boolean } } = {
-    biasa: { name: 'Template Misa Biasa', url: 'https://komsosnas.parokipugeran.org/Template%20Teks%20Misa/Template%20Misa%20biasa.pptx', enabled: true },
+const templateMap: { [key in MassType]?: { name: string; url: string; enabled: boolean } } = {
+    harian: { name: 'Template Misa Harian', url: 'https://komsosnas.parokipugeran.org/Template%20Teks%20Misa/Template%20Misa%20biasa.pptx', enabled: true },
+    mingguan: { name: 'Template Misa Biasa', url: 'https://komsosnas.parokipugeran.org/Template%20Teks%20Misa/Template%20Misa%20biasa.pptx', enabled: true },
     manten: { name: 'Template Misa Manten', url: '#', enabled: false },
     memule: { name: 'Template Misa Memule', url: '#', enabled: false },
     kamisPutih: { name: 'Template Kamis Putih', url: '#', enabled: false },
     jumatAgung: { name: 'Template Jumat Agung', url: '#', enabled: false },
-    paskah: { name: 'Template Hari Paskah', url: '#', enabled: false },
+    malamPaskah: { name: 'Template Malam Paskah', url: '#', enabled: false },
     natal: { name: 'Template Natal', url: '#', enabled: false },
-    // FIX: Added missing 'dataEntry' to satisfy the MassType enum.
     dataEntry: { name: 'User-Provided Template', url: '#', enabled: false },
 };
 
@@ -42,7 +43,7 @@ const VisualBox: React.FC<{children: React.ReactNode}> = ({ children }) => (
 
 
 export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLanguage }) => {
-    const currentTemplate = templateMap[massType];
+    const currentTemplate = templateMap[massType] || { name: 'No Template Selected', url: '#', enabled: false };
     const content = tutorialContent[appLanguage];
 
     return (
@@ -51,7 +52,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLangu
                 {content.welcome}
             </p>
 
-            <Section title={content.step1Title} icon={<CogIcon className="w-6 h-6"/>}>
+            <Section title={content.step1Title} icon={<CogIcon className="w-5 h-5"/>}>
                 <p>{content.step1Desc}</p>
                 <div>
                     <h4 className="font-bold text-[var(--text-primary)]">{content.step1TitleLabel}</h4>
@@ -88,7 +89,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLangu
                 </div>
             </Section>
 
-            <Section title={content.step2Title} icon={<DocumentIcon className="w-6 h-6"/>}>
+            <Section title={content.step2Title} icon={<DocumentIcon className="w-5 h-5"/>}>
                 <p>{content.step2Desc}</p>
                 
                 <h4 className="font-bold text-[var(--text-primary)] pt-2">{content.step2Features}</h4>
@@ -110,7 +111,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLangu
                         <p className="mt-1">{content.step2ParaDesc}</p>
                          <VisualBox>
                             <button className="text-xs text-[var(--accent-color-400)] hover:text-[var(--accent-color-300)] font-semibold transition flex items-center gap-1">
-                                <ParagraphIcon className="w-3 h-3" />
+                                <ParagraphIcon className="w-4 h-4" />
                                 Paragraphify
                             </button>
                              <div className="grid grid-cols-2 gap-2 w-full text-xs mt-2">
@@ -130,7 +131,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLangu
                 </div>
             </Section>
 
-             <Section title={content.step3Title} icon={<PresentationIcon className="w-6 h-6"/>}>
+             <Section title={content.step3Title} icon={<PresentationIcon className="w-5 h-5"/>}>
                 <p>{content.step3Desc1}</p>
                 <p>{content.step3Desc2}</p>
                  <VisualBox>
@@ -158,7 +159,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ massType, appLangu
                 </VisualBox>
             </Section>
 
-            <Section title={content.step4Title} icon={<DownloadIcon className="w-6 h-6"/>}>
+            <Section title={content.step4Title} icon={<DownloadIcon className="w-5 h-5"/>}>
                 <p>{content.step4Desc1}</p>
                 <p>{content.step4Desc2}</p>
             </Section>

@@ -3,14 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MoreVerticalIcon, CogIcon, BookOpenIcon, SlidersIcon, ClipboardIcon } from './icons';
 
 interface DropdownMenuProps {
-    onSetupClick: () => void;
     onTutorialClick: () => void;
     onSettingsClick: () => void;
     onDevlogClick: () => void;
     t: (key: string) => string;
 }
 
-export const DropdownMenu: React.FC<DropdownMenuProps> = ({ onSetupClick, onTutorialClick, onSettingsClick, onDevlogClick, t }) => {
+export const DropdownMenu: React.FC<DropdownMenuProps> = ({ onTutorialClick, onSettingsClick, onDevlogClick, t }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +50,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ onSetupClick, onTuto
                 aria-expanded={isOpen}
                 aria-label="Open menu"
             >
-                <MoreVerticalIcon className="w-6 h-6" />
+                <MoreVerticalIcon className="w-5 h-5" />
             </button>
 
             <div 
@@ -62,7 +61,6 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ onSetupClick, onTuto
                     }`
                 }
             >
-                <MenuButton onClick={onSetupClick} icon={<CogIcon className="w-4 h-4" />}>{t('menuSetup')}</MenuButton>
                 <MenuButton onClick={onTutorialClick} icon={<BookOpenIcon className="w-4 h-4" />}>{t('menuTutorial')}</MenuButton>
                 <MenuButton onClick={onSettingsClick} icon={<SlidersIcon className="w-4 h-4" />}>{t('menuSettings')}</MenuButton>
                 <MenuButton onClick={onDevlogClick} icon={<ClipboardIcon className="w-4 h-4" />}>{t('menuDevlog')}</MenuButton>

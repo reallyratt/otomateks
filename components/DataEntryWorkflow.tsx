@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { PresentationIcon, ExcelIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, CogIcon } from './icons';
 import { FileUpload } from './FileUpload';
@@ -62,8 +63,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
     const [placeholders, setPlaceholders] = useState<string[] | null>(null);
     
     const [mappings, setMappings] = useState<{ [key: string]: string }>({});
-    const [syncedColumn, setSyncedColumn] = useState<string>('');
-    const [linesPerSlide, setLinesPerSlide] = useState<number>(1);
+    const [groupingColumn, setGroupingColumn] = useState<string>('');
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -74,9 +74,9 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
         setMappings(prev => ({...prev, [placeholder]: cleanedValue}));
     };
 
-    const handleSyncedColumnChange = (column: string) => {
+    const handleGroupingColumnChange = (column: string) => {
         const cleanedValue = column.toUpperCase().replace(/[^A-Z]/g, '');
-        setSyncedColumn(cleanedValue);
+        setGroupingColumn(cleanedValue);
     };
 
     const parseFiles = useCallback(async () => {
@@ -122,8 +122,8 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                 templateFile,
                 excelData,
                 mappings,
-                syncedColumn || null,
-                linesPerSlide,
+                groupingColumn || null,
+                1, // Default to 1 row per slide if no grouping
                 presentationTitle
             );
             setStatusMessage("Presentation generated and downloaded successfully!");
@@ -140,10 +140,10 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
     const isGenerateDisabled = !showConfig || isLoading || !presentationTitle;
 
     return (
-        <div className="space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
+        <div className="space-y-6">
             <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-4">
                 <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3">
-                    <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><PresentationIcon /></span>
+                    <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><PresentationIcon className="w-5 h-5"/></span>
                     Upload Files
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -162,13 +162,13 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                 </div>
             </div>
 
-            {isParsing && <div className="flex justify-center items-center gap-2 text-[var(--text-secondary)]"><LoaderIcon/> Parsing files...</div>}
+            {isParsing && <div className="flex justify-center items-center gap-2 text-[var(--text-secondary)]"><LoaderIcon className="w-4 h-4"/> Parsing files...</div>}
 
             {showConfig && (
                 <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
                     <div>
                         <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 mb-4">
-                             <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><CogIcon /></span>
+                             <span className="bg-[var(--accent-color-500)]/20 text-[var(--accent-color-300)] p-2 rounded-lg"><CogIcon className="w-5 h-5"/></span>
                             Configuration
                         </h2>
 
@@ -194,33 +194,19 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                         </div>
 
                         <div className="space-y-4 bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] mt-4">
-                            <h3 className="font-semibold text-[var(--text-primary)]">Advanced Options</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="synced-column" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Synced Lines Column</label>
-                                     <input
-                                        type="text"
-                                        id="synced-column"
-                                        value={syncedColumn}
-                                        onChange={(e) => handleSyncedColumnChange(e.target.value)}
-                                        className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] font-mono"
-                                        placeholder="e.g., B (optional)"
-                                        maxLength={2}
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Fills empty cells in this column with the value from the row above.</p>
-                                </div>
-                                 <div>
-                                    <label htmlFor="lines-per-slide" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Rows per Slide</label>
+                            <h3 className="font-semibold text-[var(--text-primary)]">Grouping Options</h3>
+                            <div>
+                                <label htmlFor="grouping-column" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Grouping Column</label>
                                     <input
-                                        type="number"
-                                        id="lines-per-slide"
-                                        value={linesPerSlide}
-                                        onChange={(e) => setLinesPerSlide(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                                        min="1"
-                                        className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)]"
-                                    />
-                                     <p className="text-xs text-gray-500 mt-1">Number of Excel rows to combine onto one slide.</p>
-                                </div>
+                                    type="text"
+                                    id="grouping-column"
+                                    value={groupingColumn}
+                                    onChange={(e) => handleGroupingColumnChange(e.target.value)}
+                                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] font-mono"
+                                    placeholder="e.g., B (optional)"
+                                    maxLength={2}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Starts a new slide for each non-empty cell. Subsequent empty rows are grouped onto the same slide. If left empty, each row becomes a separate slide.</p>
                             </div>
                         </div>
                     </div>
@@ -234,7 +220,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
                                     : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
                             }>
-                            {isLoading ? <><LoaderIcon /> Generating...</> : <><DownloadIcon/> Generate & Download</>}
+                            {isLoading ? <><LoaderIcon className="w-4 h-4"/> Generating...</> : <><DownloadIcon className="w-4 h-4"/> Generate & Download</>}
                         </button>
                     </div>
                 </div>
@@ -243,7 +229,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
             <div className="h-10 text-center mt-6">
                 {isLoading && (
                     <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
-                        <LoaderIcon />
+                        <LoaderIcon className="w-4 h-4"/>
                         <p>{statusMessage}</p>
                     </div>
                 )}
@@ -252,7 +238,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                 )}
                 {error && (
                     <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
-                        <AlertTriangleIcon />
+                        <AlertTriangleIcon className="w-4 h-4"/>
                         <p>{error}</p>
                     </div>
                 )}
