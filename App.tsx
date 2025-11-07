@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Language, PresentationData, MassType } from './types';
 import { translations } from './i18n';
 import { processTemplate } from './services/pptTemplater';
-import { PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon } from './components/icons';
+import { PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon, SlidersIcon } from './components/icons';
 import { FileUpload } from './components/FileUpload';
 import { Modal } from './components/Modal';
 import { TemplateCreationGuide } from './components/TemplateCreationGuide';
@@ -144,6 +144,21 @@ const StepContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
     <div className="animate-[fadeIn_0.5s_ease-in-out]">{children}</div>
 );
 
+type HarianSections = 'showLaguPembuka' | 'showTuhanKasihanilahKami' | 'showDoaKolekta' | 'showBacaan2' | 'showDoaUmat' | 'showLaguPersembahan' | 'showLaguKomuni' | 'showDoaSesudahKomuni' | 'showLaguPenutup';
+
+const optionalSectionsConfig: { key: HarianSections; label: string }[] = [
+    { key: 'showLaguPembuka', label: 'Lagu Pembuka' },
+    { key: 'showTuhanKasihanilahKami', label: 'Tuhan Kasihanilah Kami' },
+    { key: 'showDoaKolekta', label: 'Doa Kolekta' },
+    { key: 'showBacaan2', label: 'Bacaan II' },
+    { key: 'showDoaUmat', label: 'Doa Umat' },
+    { key: 'showLaguPersembahan', label: 'Lagu Persembahan' },
+    { key: 'showLaguKomuni', label: 'Lagu Komuni' },
+    { key: 'showDoaSesudahKomuni', label: 'Doa Sesudah Komuni' },
+    { key: 'showLaguPenutup', label: 'Lagu Penutup' },
+];
+
+
 const App: React.FC = () => {
     const [massLanguage, setMassLanguage] = useState<Language>('indonesia');
     const [massType, setMassType] = useState<MassType>('mingguan');
@@ -162,6 +177,26 @@ const App: React.FC = () => {
     // Theming and Language State
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [accentColor, setAccentColor] = useState('sky');
+    
+    const [harianOptionalSections, setHarianOptionalSections] = useState({
+        showLaguPembuka: false,
+        showTuhanKasihanilahKami: false,
+        showDoaKolekta: false,
+        showBacaan2: false,
+        showDoaUmat: false,
+        showLaguPersembahan: false,
+        showLaguKomuni: false,
+        showDoaSesudahKomuni: false,
+        showLaguPenutup: false,
+    });
+    
+    const handleHarianToggle = (section: HarianSections) => {
+        setHarianOptionalSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
 
     const t = useCallback((key: string) => {
         return translations.indonesia[key] || key;
@@ -447,70 +482,115 @@ const App: React.FC = () => {
                         {currentStep === 3 && massType !== 'dataEntry' && (
                             <StepContainer>
                                 <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6">
-                                    <div className="space-y-6">
-                                        {formConfig.map((field) => {
-                                            const titleKey = `${field.key}Title`;
-                                            const textKey = `${field.key}Text`;
-                                            const imagesKey = `${field.key}Images`;
-                                            const defaultMode = field.types.includes('text') ? 'text' : 'image';
-                                            const currentMode = inputModes[field.key] || defaultMode;
-                                            const isMultiImage = field.types.includes('multi-image');
-
-                                            return (
-                                            <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
-                                                <div className="flex justify-between items-center">
-                                                    <h3 className="text-lg font-bold text-[var(--accent-color-400)]">{field.label}</h3>
-                                                    {field.types.length > 1 && (
-                                                        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
-                                                            <button onClick={() => handleModeChange(field.key, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
-                                                            <button onClick={() => handleModeChange(field.key, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
-                                                        </div>
-                                                    )}
+                                    {massType === 'harian' && (
+                                        <details className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] group">
+                                            <summary className="font-semibold text-[var(--accent-color-400)] cursor-pointer list-none flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <SlidersIcon className="w-4 h-4" />
+                                                    Optional Sections
                                                 </div>
-
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    <div>
-                                                        <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
-                                                        <input
-                                                            type="text"
-                                                            id={titleKey}
-                                                            name={titleKey}
-                                                            value={(presentationData as any)[titleKey] || ''}
-                                                            onChange={handleInputChange}
-                                                            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
-                                                        />
-                                                    </div>
-                                                    {currentMode === 'text' ? (
-                                                        <div>
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
-                                                                <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition" aria-label="Paragraphify Text">
-                                                                    <ParagraphIcon className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                            <textarea
-                                                                id={textKey}
-                                                                name={textKey}
-                                                                value={(presentationData as any)[textKey] || ''}
-                                                                onChange={handleInputChange}
-                                                                className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
+                                                <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </summary>
+                                            <div className="mt-4 pt-4 border-t border-[var(--border-secondary)] grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                {optionalSectionsConfig.map(section => (
+                                                    <label key={section.key} className="flex items-center space-x-2 cursor-pointer text-sm">
+                                                        <div className="relative">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="sr-only peer"
+                                                                checked={harianOptionalSections[section.key]}
+                                                                onChange={() => handleHarianToggle(section.key)}
                                                             />
+                                                            <div className="w-10 h-6 rounded-full bg-[var(--bg-tertiary)] peer-checked:bg-[var(--accent-color-500)] transition-colors"></div>
+                                                            <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                                                         </div>
-                                                    ) : (
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
-                                                            <FileUpload
-                                                                id={imagesKey}
-                                                                onFileSelect={(files) => handleFileChange(field.key, files)}
-                                                                multiple={isMultiImage}
-                                                                accept="image/*"
-                                                                label="Click to upload"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        <span className="text-[var(--text-secondary)]">{section.label}</span>
+                                                    </label>
+                                                ))}
                                             </div>
-                                        )})}
+                                        </details>
+                                    )}
+
+                                    <div className="space-y-6">
+                                        {formConfig
+                                            .filter(field => {
+                                                if (massType !== 'harian') return true;
+                                                
+                                                if (field.key === 'laguPembuka') return harianOptionalSections.showLaguPembuka;
+                                                if (field.key.startsWith('tuhanKasihanilahKami')) return harianOptionalSections.showTuhanKasihanilahKami;
+                                                if (field.key === 'doaKolekta') return harianOptionalSections.showDoaKolekta;
+                                                if (field.key === 'bacaan2') return harianOptionalSections.showBacaan2;
+                                                if (field.key.startsWith('doaUmat')) return harianOptionalSections.showDoaUmat;
+                                                if (field.key === 'laguPersembahan') return harianOptionalSections.showLaguPersembahan;
+                                                if (field.key.startsWith('laguKomuni')) return harianOptionalSections.showLaguKomuni;
+                                                if (field.key === 'doaSesudahKomuni') return harianOptionalSections.showDoaSesudahKomuni;
+                                                if (field.key === 'laguPenutup') return harianOptionalSections.showLaguPenutup;
+
+                                                return true; // Show field if it's not in the optional list
+                                            })
+                                            .map((field) => {
+                                                const titleKey = `${field.key}Title`;
+                                                const textKey = `${field.key}Text`;
+                                                const imagesKey = `${field.key}Images`;
+                                                const defaultMode = field.types.includes('text') ? 'text' : 'image';
+                                                const currentMode = inputModes[field.key] || defaultMode;
+                                                const isMultiImage = field.types.includes('multi-image');
+
+                                                return (
+                                                <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">{field.label}</h3>
+                                                        {field.types.length > 1 && (
+                                                            <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
+                                                                <button onClick={() => handleModeChange(field.key, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
+                                                                <button onClick={() => handleModeChange(field.key, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div>
+                                                            <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
+                                                            <input
+                                                                type="text"
+                                                                id={titleKey}
+                                                                name={titleKey}
+                                                                value={(presentationData as any)[titleKey] || ''}
+                                                                onChange={handleInputChange}
+                                                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                            />
+                                                        </div>
+                                                        {currentMode === 'text' ? (
+                                                            <div>
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
+                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition" aria-label="Paragraphify Text">
+                                                                        <ParagraphIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                                <textarea
+                                                                    id={textKey}
+                                                                    name={textKey}
+                                                                    value={(presentationData as any)[textKey] || ''}
+                                                                    onChange={handleInputChange}
+                                                                    className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
+                                                                <FileUpload
+                                                                    id={imagesKey}
+                                                                    onFileSelect={(files) => handleFileChange(field.key, files)}
+                                                                    multiple={isMultiImage}
+                                                                    accept="image/*"
+                                                                    label="Click to upload"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )})}
                                     </div>
                                      <div className="flex justify-between pt-4">
                                         <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
