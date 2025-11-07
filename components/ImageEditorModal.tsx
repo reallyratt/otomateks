@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CropIcon, TrashIcon } from './icons';
+import { CropIcon, TrashIcon, XIcon, PlusIcon } from './icons';
 
 interface Rect {
     id: number;
@@ -8,6 +8,11 @@ interface Rect {
     y: number;
     width: number;
     height: number;
+}
+
+interface Slide {
+    id: number;
+    rects: Rect[];
 }
 
 interface ImageEditorModalProps {
@@ -18,8 +23,10 @@ interface ImageEditorModalProps {
 
 export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave, onClose }) => {
     const [imageUrl, setImageUrl] = useState('');
-    const [rects, setRects] = useState<Rect[]>([]);
-    const [nextId, setNextId] = useState(1);
+    const [slides, setSlides] = useState<Slide[]>([{ id: 1, rects: [] }]);
+    const [activeSlideId, setActiveSlideId] = useState(1);
+    const [nextSlideId, setNextSlideId] = useState(2);
+    const [nextRectId, setNextRectId] = useState(1);
     
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -42,19 +49,49 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
 
     const handleAddRect = () => {
         const newRect: Rect = {
-            id: nextId,
+            id: nextRectId,
             x: 10,
             y: 10,
             width: 200,
             height: 50
         };
-        setRects(prev => [...prev, newRect]);
-        setNextId(prev => prev + 1);
+        setSlides(prevSlides =>
+            prevSlides.map(slide =>
+                slide.id === activeSlideId
+                    ? { ...slide, rects: [...slide.rects, newRect] }
+                    : slide
+            )
+        );
+        setNextRectId(prev => prev + 1);
+    };
+
+    const handleAddSlide = () => {
+        const newSlide: Slide = { id: nextSlideId, rects: [] };
+        setSlides(prev => [...prev, newSlide]);
+        setActiveSlideId(nextSlideId);
+        setNextSlideId(prev => prev + 1);
+    };
+
+    const handleSwitchSlide = (id: number) => {
+        setActiveSlideId(id);
+    };
+
+    const handleDeleteSlide = (e: React.MouseEvent, idToDelete: number) => {
+        e.stopPropagation();
+        if (slides.length <= 1) return;
+
+        const newSlides = slides.filter(s => s.id !== idToDelete);
+        setSlides(newSlides);
+
+        if (activeSlideId === idToDelete) {
+            setActiveSlideId(newSlides[0]?.id || 0);
+        }
     };
     
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, rectId: number, type: 'move' | 'resize-br') => {
         e.stopPropagation();
-        const rect = rects.find(r => r.id === rectId);
+        const activeSlide = slides.find(s => s.id === activeSlideId);
+        const rect = activeSlide?.rects.find(r => r.id === rectId);
         if (!rect) return;
 
         interactionRef.current = {
@@ -80,34 +117,39 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         const dy = e.clientY - startY;
         const containerBounds = containerRef.current.getBoundingClientRect();
         
-        setRects(prevRects => prevRects.map(r => {
-            if (r.id !== rectId) return r;
-            
-            let newX = r.x;
-            let newY = r.y;
-            let newWidth = r.width;
-            let newHeight = r.height;
+        setSlides(prevSlides =>
+            prevSlides.map(slide => {
+                if (slide.id !== activeSlideId) return slide;
+                
+                const newRects = slide.rects.map(r => {
+                    if (r.id !== rectId) return r;
+                    
+                    let newX = r.x;
+                    let newY = r.y;
+                    let newWidth = r.width;
+                    let newHeight = r.height;
 
-            if (type === 'move') {
-                newX = startRectX + dx;
-                newY = startRectY + dy;
-            } else if (type === 'resize-br') {
-                newWidth = startRectW + dx;
-                newHeight = startRectH + dy;
-            }
-            
-            // Boundary checks
-            if (newX < 0) newX = 0;
-            if (newY < 0) newY = 0;
-            if (newWidth < 20) newWidth = 20;
-            if (newHeight < 20) newHeight = 20;
-            if (newX + newWidth > containerBounds.width) newWidth = containerBounds.width - newX;
-            if (newY + newHeight > containerBounds.height) newHeight = containerBounds.height - newY;
+                    if (type === 'move') {
+                        newX = startRectX + dx;
+                        newY = startRectY + dy;
+                    } else if (type === 'resize-br') {
+                        newWidth = startRectW + dx;
+                        newHeight = startRectH + dy;
+                    }
+                    
+                    if (newX < 0) newX = 0;
+                    if (newY < 0) newY = 0;
+                    if (newWidth < 20) newWidth = 20;
+                    if (newHeight < 20) newHeight = 20;
+                    if (newX + newWidth > containerBounds.width) newWidth = containerBounds.width - newX;
+                    if (newY + newHeight > containerBounds.height) newHeight = containerBounds.height - newY;
 
-            return { ...r, x: newX, y: newY, width: newWidth, height: newHeight };
-        }));
-
-    }, []);
+                    return { ...r, x: newX, y: newY, width: newWidth, height: newHeight };
+                });
+                return { ...slide, rects: newRects };
+            })
+        );
+    }, [activeSlideId]);
 
     const handleMouseUp = useCallback(() => {
         interactionRef.current = null;
@@ -117,11 +159,17 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
     
     const handleDeleteRect = (e: React.MouseEvent, idToDelete: number) => {
         e.stopPropagation();
-        setRects(prev => prev.filter(r => r.id !== idToDelete));
+        setSlides(prevSlides =>
+            prevSlides.map(slide =>
+                slide.id === activeSlideId
+                    ? { ...slide, rects: slide.rects.filter(r => r.id !== idToDelete) }
+                    : slide
+            )
+        );
     };
 
     const handleSave = async () => {
-        if (!imageRef.current || rects.length === 0) {
+        if (!imageRef.current) {
             onClose();
             return;
         }
@@ -133,59 +181,65 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         const displayedHeight = imageElement.height;
         const scaleX = naturalWidth / displayedWidth;
         const scaleY = naturalHeight / displayedHeight;
-        
-        const sortedRects = [...rects].sort((a, b) => a.y - b.y);
 
-        let totalHeight = 0;
-        let maxWidth = 0;
-        sortedRects.forEach(rect => {
-            totalHeight += rect.height;
-            if (rect.width > maxWidth) {
-                maxWidth = rect.width;
+        const newFiles: File[] = [];
+        const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || `image_crop_${Date.now()}`;
+
+        for (const [index, slide] of slides.entries()) {
+            if (slide.rects.length === 0) continue;
+
+            const sortedRects = [...slide.rects].sort((a, b) => a.y - b.y);
+
+            let totalHeight = 0;
+            let maxWidth = 0;
+            sortedRects.forEach(rect => {
+                totalHeight += rect.height;
+                if (rect.width > maxWidth) maxWidth = rect.width;
+            });
+
+            const finalCanvasWidth = maxWidth * scaleX;
+            const finalCanvasHeight = totalHeight * scaleY;
+
+            if (finalCanvasWidth === 0 || finalCanvasHeight === 0) continue;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = finalCanvasWidth;
+            canvas.height = finalCanvasHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) continue;
+
+            let currentY = 0;
+            for (const rect of sortedRects) {
+                const sx = rect.x * scaleX;
+                const sy = rect.y * scaleY;
+                const sWidth = rect.width * scaleX;
+                const sHeight = rect.height * scaleY;
+
+                ctx.drawImage(imageElement, sx, sy, sWidth, sHeight, 0, currentY, sWidth, sHeight);
+                currentY += sHeight;
             }
-        });
 
-        const finalCanvasWidth = maxWidth * scaleX;
-        const finalCanvasHeight = totalHeight * scaleY;
-
-        if (finalCanvasWidth === 0 || finalCanvasHeight === 0) {
-            onClose();
-            return;
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (blob) {
+                const newFileName = `${originalName}_slide_${index + 1}.png`;
+                const newFile = new File([blob], newFileName, { type: 'image/png' });
+                newFiles.push(newFile);
+            }
         }
         
-        const canvas = document.createElement('canvas');
-        canvas.width = finalCanvasWidth;
-        canvas.height = finalCanvasHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let currentY = 0;
-
-        for (const rect of sortedRects) {
-            const sx = rect.x * scaleX;
-            const sy = rect.y * scaleY;
-            const sWidth = rect.width * scaleX;
-            const sHeight = rect.height * scaleY;
-
-            ctx.drawImage(imageElement, sx, sy, sWidth, sHeight, 0, currentY, sWidth, sHeight);
-            currentY += sHeight;
-        }
-
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-        if (blob) {
-            const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || `image_crop_${Date.now()}`;
-            const newFileName = `${originalName}_combined.png`;
-            const newCombinedFile = new File([blob], newFileName, { type: 'image/png' });
-            onSave(file, [newCombinedFile]);
+        if (newFiles.length > 0) {
+            onSave(file, newFiles);
         } else {
             onClose();
         }
     };
 
+    const activeSlideRects = slides.find(s => s.id === activeSlideId)?.rects || [];
+
     return (
         <div className="flex flex-col h-[75vh]">
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-t-lg">
-                <p className="text-sm text-[var(--text-secondary)]">Draw boxes to crop parts of the image.</p>
+                <p className="text-sm text-[var(--text-secondary)]">Draw crop boxes for the active slide.</p>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleAddRect}
@@ -204,7 +258,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                         alt="Edit preview"
                         className="max-w-full max-h-full block select-none pointer-events-none"
                     />
-                    {rects.map((rect, index) => (
+                    {activeSlideRects.map((rect, index) => (
                         <div
                             key={rect.id}
                             onMouseDown={(e) => handleMouseDown(e, rect.id, 'move')}
@@ -222,33 +276,68 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                             </div>
                             <button 
                                 onClick={(e) => handleDeleteRect(e, rect.id)}
-                                className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center transition transform hover:scale-110"
+                                className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center transition transform hover:scale-110 z-20"
                                 aria-label="Delete crop area"
                             >
                                 <TrashIcon className="w-3 h-3" />
                             </button>
                             <div
                                 onMouseDown={(e) => handleMouseDown(e, rect.id, 'resize-br')}
-                                className="absolute -bottom-1 -right-1 w-4 h-4 bg-[var(--accent-color-400)] rounded-full cursor-se-resize border-2 border-[var(--bg-primary)]"
+                                className="absolute -bottom-1 -right-1 w-4 h-4 bg-[var(--accent-color-400)] rounded-full cursor-se-resize border-2 border-[var(--bg-primary)] z-20"
                             />
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="flex-shrink-0 flex justify-end gap-3 p-4 border-t border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-b-lg">
-                <button
-                    onClick={onClose}
-                    className="px-4 py-2 text-sm font-semibold rounded-md bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={handleSave}
-                    className="px-4 py-2 text-sm font-semibold rounded-md bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105"
-                >
-                    Save Changes
-                </button>
+            <div className="flex-shrink-0 flex flex-col gap-3 p-4 border-t border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-b-lg">
+                 <div className="flex items-center gap-2">
+                    <div className="flex-grow flex items-center gap-2 overflow-x-auto pb-2">
+                        {slides.map((slide, index) => (
+                            <button
+                                key={slide.id}
+                                onClick={() => handleSwitchSlide(slide.id)}
+                                className={`relative flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-all border ${
+                                    activeSlideId === slide.id 
+                                    ? 'bg-[var(--accent-color-500)] text-white border-[var(--accent-color-500)]' 
+                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-secondary)] hover:bg-[var(--bg-hover)]'
+                                }`}
+                            >
+                                Slide {index + 1}
+                                {slides.length > 1 && (
+                                    <button 
+                                        onClick={(e) => handleDeleteSlide(e, slide.id)}
+                                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center transition transform hover:scale-110"
+                                        aria-label={`Delete Slide ${index + 1}`}
+                                    >
+                                        <XIcon className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={handleAddSlide}
+                        className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-md bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all"
+                        aria-label="Add New Slide"
+                    >
+                        <PlusIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border-secondary)]">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-semibold rounded-md bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="px-4 py-2 text-sm font-semibold rounded-md bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105"
+                    >
+                        Save Changes
+                    </button>
+                </div>
             </div>
         </div>
     );
