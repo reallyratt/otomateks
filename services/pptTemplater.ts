@@ -156,10 +156,27 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
         shapeElement.insertBefore(spPr, shapeElement.firstChild);
     }
     
+    // Remove any existing fill to ensure transparency
     const existingFill = spPr.querySelector('solidFill, gradFill, noFill, pattFill, blipFill');
     if (existingFill) existingFill.remove();
+    
+    // Remove shape outline by replacing it with a "noFill" line
+    const line = spPr.querySelector('ln');
+    if (line) {
+        while (line.firstChild) line.removeChild(line.firstChild);
+        const noFill = doc.createElementNS(NS_DRAWINGML, 'a:noFill');
+        line.appendChild(noFill);
+    }
 
-    let srcRect: Element | null = null;
+    const blipFill = doc.createElementNS(NS_DRAWINGML, 'a:blipFill');
+    const blip = doc.createElementNS(NS_DRAWINGML, 'a:blip');
+    blip.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:embed', imageRId);
+    blipFill.appendChild(blip);
+    
+    // Logic to fit image within shape bounds (contain)
+    const stretch = doc.createElementNS(NS_DRAWINGML, 'a:stretch');
+    const fillRect = doc.createElementNS(NS_DRAWINGML, 'a:fillRect');
+    
     try {
         const ext = spPr.querySelector('xfrm ext');
         const shapeCx = ext?.getAttribute('cx');
@@ -169,29 +186,29 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
             const shapeWidth = parseInt(shapeCx, 10);
             const shapeHeight = parseInt(shapeCy, 10);
             
-            if (shapeHeight > 0) {
+            if (shapeWidth > 0 && shapeHeight > 0) {
                 const shapeAspect = shapeWidth / shapeHeight;
                 const { width: imageWidth, height: imageHeight } = await getImageDimensions(imageBase64);
                 
-                if (imageHeight > 0) {
+                if (imageWidth > 0 && imageHeight > 0) {
                     const imageAspect = imageWidth / imageHeight;
-                    if (Math.abs(shapeAspect - imageAspect) > 0.01) { // Ratios are different, calculate crop
-                        srcRect = doc.createElementNS(NS_DRAWINGML, 'a:srcRect');
-                        if (imageAspect > shapeAspect) { // Image is wider, crop sides
-                            const newImageWidth = shapeAspect * imageHeight;
-                            const cropFactor = (imageWidth - newImageWidth) / imageWidth;
-                            const cropValue = Math.round((cropFactor / 2) * 100000);
-                            if (cropValue > 0) {
-                                srcRect.setAttribute('l', String(cropValue));
-                                srcRect.setAttribute('r', String(cropValue));
+                    
+                    if (Math.abs(shapeAspect - imageAspect) > 0.01) { // Ratios are different
+                        if (imageAspect > shapeAspect) { // Image is wider, letterbox vertically
+                            const newImageHeight = shapeWidth / imageAspect;
+                            const margin = (shapeHeight - newImageHeight) / 2;
+                            const marginPercent = Math.round((margin / shapeHeight) * 100000);
+                            if (marginPercent > 0) {
+                                fillRect.setAttribute('t', String(marginPercent));
+                                fillRect.setAttribute('b', String(marginPercent));
                             }
-                        } else { // Image is taller, crop top/bottom
-                            const newImageHeight = imageWidth / shapeAspect;
-                            const cropFactor = (imageHeight - newImageHeight) / imageHeight;
-                            const cropValue = Math.round((cropFactor / 2) * 100000);
-                             if (cropValue > 0) {
-                                srcRect.setAttribute('t', String(cropValue));
-                                srcRect.setAttribute('b', String(cropValue));
+                        } else { // Image is taller, pillarbox horizontally
+                            const newImageWidth = shapeHeight * imageAspect;
+                            const margin = (shapeWidth - newImageWidth) / 2;
+                            const marginPercent = Math.round((margin / shapeWidth) * 100000);
+                             if (marginPercent > 0) {
+                                fillRect.setAttribute('l', String(marginPercent));
+                                fillRect.setAttribute('r', String(marginPercent));
                             }
                         }
                     }
@@ -199,25 +216,14 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
             }
         }
     } catch (e) {
-        console.warn("Could not calculate image cropping, default stretching will be applied.", e);
-        srcRect = null;
-    }
-
-    const blipFill = doc.createElementNS(NS_DRAWINGML, 'a:blipFill');
-    const blip = doc.createElementNS(NS_DRAWINGML, 'a:blip');
-    blip.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:embed', imageRId);
-    blipFill.appendChild(blip);
-    
-    if (srcRect && srcRect.hasAttributes()) {
-        blipFill.appendChild(srcRect);
+        console.warn("Could not calculate image fitting, default stretching will be applied.", e);
     }
     
-    const stretch = doc.createElementNS(NS_DRAWINGML, 'a:stretch');
-    const fillRect = doc.createElementNS(NS_DRAWINGML, 'a:fillRect');
     stretch.appendChild(fillRect);
     blipFill.appendChild(stretch);
     spPr.appendChild(blipFill);
 };
+
 
 const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, contentTypesXmlDoc: XMLDocument, imageBase64: string): Promise<string> => {
     const mediaId = getNextMediaId(zip, true);

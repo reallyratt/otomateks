@@ -12,6 +12,7 @@ import { DropdownMenu } from './components/DropdownMenu';
 import { SettingsModal } from './components/SettingsModal';
 import { DevlogModal } from './components/DevlogModal';
 import { DataEntryWorkflow } from './components/DataEntryWorkflow';
+import { ImageEditorModal } from './components/ImageEditorModal';
 
 
 type InputType = 'text' | 'image' | 'multi-image';
@@ -140,6 +141,34 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
+const invertImageBase64 = (base64String: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return reject(new Error('Could not get canvas context'));
+            }
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];     // red
+                data[i + 1] = 255 - data[i + 1]; // green
+                data[i + 2] = 255 - data[i + 2]; // blue
+            }
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL());
+        };
+        img.onerror = (err) => reject(err);
+        img.src = base64String;
+    });
+};
+
+
 const StepContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
     <div className="animate-[fadeIn_0.5s_ease-in-out]">{children}</div>
 );
@@ -165,7 +194,6 @@ const App: React.FC = () => {
     const [presentationData, setPresentationData] = useState<PresentationData>(defaultTitlesIndonesia);
     const [inputModes, setInputModes] = useState<{ [key: string]: 'text' | 'image' }>({});
     const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
-    const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File[] }>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
@@ -179,6 +207,13 @@ const App: React.FC = () => {
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [accentColor, setAccentColor] = useState('sky');
     
+    // Image Handling State
+    const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File[] }>({});
+    const [originalBase64Cache, setOriginalBase64Cache] = useState<{ [key: string]: { [fileName: string]: string } }>({});
+    const [invertedImages, setInvertedImages] = useState<{ [key: string]: Set<string> }>({});
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingFile, setEditingFile] = useState<{ key: string; file: File } | null>(null);
+
     const [harianOptionalSections, setHarianOptionalSections] = useState({
         showLaguPembuka: false,
         showTuhanKasihanilahKami: false,
@@ -263,6 +298,54 @@ const App: React.FC = () => {
         setPresentationData(prev => ({ ...prev, presentationTitle: newTitle }));
     }, [massLanguage, massType]);
 
+    useEffect(() => {
+        const updateAllImages = async () => {
+            const dataUpdates: { [key: string]: string[] } = {};
+            
+            for (const fieldKey of Object.keys(originalBase64Cache)) {
+                const files = uploadedFiles[fieldKey] || [];
+                if (files.length === 0) {
+                    dataUpdates[`${fieldKey}Images`] = [];
+                    continue;
+                }
+
+                const base64Array = await Promise.all(files.map(async (file) => {
+                    const originalBase64 = originalBase64Cache[fieldKey]?.[file.name];
+                    if (!originalBase64) return null;
+                    if (invertedImages[fieldKey]?.has(file.name)) {
+                        return await invertImageBase64(originalBase64);
+                    }
+                    return originalBase64;
+                }));
+
+                dataUpdates[`${fieldKey}Images`] = base64Array.filter(Boolean) as string[];
+            }
+
+            setPresentationData(prev => {
+                const currentImagesJson: {[key: string]: any} = {};
+                const updatedImagesJson: {[key: string]: any} = {};
+                let hasChanged = false;
+
+                for (const key in dataUpdates) {
+                    currentImagesJson[key] = prev[key as keyof PresentationData];
+                    updatedImagesJson[key] = dataUpdates[key];
+                }
+                
+                if (JSON.stringify(currentImagesJson) !== JSON.stringify(updatedImagesJson)) {
+                    hasChanged = true;
+                }
+
+                if (hasChanged) {
+                    return { ...prev, ...dataUpdates };
+                }
+                return prev;
+            });
+        };
+
+        updateAllImages();
+    }, [uploadedFiles, invertedImages, originalBase64Cache]);
+
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setPresentationData(prev => ({ ...prev, [name]: value }));
@@ -272,25 +355,127 @@ const App: React.FC = () => {
         const fileArray = Array.isArray(files) ? files : [files];
         setUploadedFiles(prev => ({ ...prev, [key]: fileArray }));
 
+        setInvertedImages(prev => {
+            const newState = { ...prev };
+            delete newState[key];
+            return newState;
+        });
+
         if (fileArray.length === 0) {
-             setPresentationData(prev => ({ ...prev, [`${key}Images`]: [] }));
+             setOriginalBase64Cache(prev => {
+                const newCache = {...prev};
+                delete newCache[key];
+                return newCache;
+             });
              return;
         }
-        const base64Files = await Promise.all(fileArray.map(fileToBase64));
-        setPresentationData(prev => ({ ...prev, [`${key}Images`]: base64Files }));
+
+        const newCacheForKey: { [fileName: string]: string } = {};
+        await Promise.all(fileArray.map(async (file) => {
+            const base64 = await fileToBase64(file);
+            newCacheForKey[file.name] = base64;
+        }));
+        setOriginalBase64Cache(prev => ({ ...prev, [key]: newCacheForKey }));
     };
 
-    const handleFileRemove = async (key: string, fileNameToRemove: string) => {
-        const newFiles = (uploadedFiles[key] || []).filter(f => f.name !== fileNameToRemove);
-        setUploadedFiles(prev => ({ ...prev, [key]: newFiles }));
+    const handleFileRemove = (key: string, fileNameToRemove: string) => {
+        setUploadedFiles(prev => {
+            const newFiles = (prev[key] || []).filter(f => f.name !== fileNameToRemove);
+            return { ...prev, [key]: newFiles };
+        });
 
-        if (newFiles.length === 0) {
-            setPresentationData(prev => ({ ...prev, [`${key}Images`]: [] }));
-            return;
+        setOriginalBase64Cache(prev => {
+            const newCache = { ...prev };
+            if (newCache[key]) {
+                delete newCache[key][fileNameToRemove];
+                if (Object.keys(newCache[key]).length === 0) {
+                    delete newCache[key];
+                }
+            }
+            return newCache;
+        });
+
+        setInvertedImages(prev => {
+            const newInverted = { ...prev };
+            if (newInverted[key]) {
+                newInverted[key].delete(fileNameToRemove);
+                if (newInverted[key].size === 0) {
+                    delete newInverted[key];
+                }
+            }
+            return newInverted;
+        });
+    };
+
+    const handleInvertToggle = (key: string, fileName: string) => {
+        setInvertedImages(prev => {
+            const newInverted = { ...prev };
+            const invertedSet = new Set(newInverted[key] || []);
+
+            if (invertedSet.has(fileName)) {
+                invertedSet.delete(fileName);
+            } else {
+                invertedSet.add(fileName);
+            }
+
+            if (invertedSet.size === 0) {
+                delete newInverted[key];
+            } else {
+                newInverted[key] = invertedSet;
+            }
+            
+            return newInverted;
+        });
+    };
+    
+    const handleFileEdit = (key: string, fileName: string) => {
+        const fileToEdit = (uploadedFiles[key] || []).find(f => f.name === fileName);
+        if (fileToEdit) {
+            setEditingFile({ key, file: fileToEdit });
+            setIsEditModalOpen(true);
         }
-        const base64Files = await Promise.all(newFiles.map(fileToBase64));
-        setPresentationData(prev => ({ ...prev, [`${key}Images`]: base64Files }));
     };
+
+    const handleEditSave = async (originalFile: File, newFiles: File[]) => {
+        if (!editingFile) return;
+        const { key } = editingFile;
+
+        // 1. Remove original file and add new files to uploadedFiles
+        setUploadedFiles(prev => {
+            const updatedFilesForKey = (prev[key] || []).filter(f => f.name !== originalFile.name);
+            updatedFilesForKey.push(...newFiles);
+            return { ...prev, [key]: updatedFilesForKey };
+        });
+
+        // 2. Update base64 cache
+        const newCacheForKey: { [fileName: string]: string } = {};
+        await Promise.all(newFiles.map(async (file) => {
+            const base64 = await fileToBase64(file);
+            newCacheForKey[file.name] = base64;
+        }));
+        setOriginalBase64Cache(prev => {
+            const updatedCache = { ...prev[key] };
+            delete updatedCache[originalFile.name];
+            return { ...prev, [key]: { ...updatedCache, ...newCacheForKey } };
+        });
+
+        // 3. Clean up inverted state for the original file
+        setInvertedImages(prev => {
+            const newInverted = { ...prev };
+            if (newInverted[key]) {
+                newInverted[key].delete(originalFile.name);
+                if (newInverted[key].size === 0) {
+                    delete newInverted[key];
+                }
+            }
+            return newInverted;
+        });
+
+        // 4. Close modal
+        setIsEditModalOpen(false);
+        setEditingFile(null);
+    };
+
 
     const handleTemplateUpload = (file: File | File[]) => {
         const templateFile = Array.isArray(file) ? file[0] : file;
@@ -608,6 +793,10 @@ const App: React.FC = () => {
                                                                     label="Click to upload"
                                                                     files={uploadedFiles[field.key] || []}
                                                                     onFileRemove={(fileName) => handleFileRemove(field.key, fileName)}
+                                                                    onInvertToggle={(fileName) => handleInvertToggle(field.key, fileName)}
+                                                                    invertedFiles={invertedImages[field.key]}
+                                                                    isImage={true}
+                                                                    onFileEdit={(fileName) => handleFileEdit(field.key, fileName)}
                                                                 />
                                                             </div>
                                                         )}
@@ -690,6 +879,19 @@ const App: React.FC = () => {
             
             <Modal isOpen={isDevlogOpen} onClose={() => setIsDevlogOpen(false)} title={t('devlogModalTitle')}>
                 <DevlogModal />
+            </Modal>
+
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Image Multi-Crop Editor">
+                {editingFile && (
+                    <ImageEditorModal
+                        file={editingFile.file}
+                        onSave={handleEditSave}
+                        onClose={() => {
+                            setIsEditModalOpen(false);
+                            setEditingFile(null);
+                        }}
+                    />
+                )}
             </Modal>
 
              <style>{`

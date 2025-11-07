@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { UploadIcon, XIcon } from './icons';
+import { UploadIcon, XIcon, PencilIcon, ContrastIcon } from './icons';
 
 interface FileUploadProps {
     onFileSelect: (file: any) => void;
@@ -10,9 +10,25 @@ interface FileUploadProps {
     id: string;
     files?: File[];
     onFileRemove?: (fileName: string) => void;
+    onInvertToggle?: (fileName: string) => void;
+    invertedFiles?: Set<string>;
+    isImage?: boolean;
+    onFileEdit?: (fileName: string) => void;
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, label, multiple = false, id, files = [], onFileRemove }) => {
+export const FileUpload: React.FC<FileUploadProps> = ({ 
+    onFileSelect, 
+    accept, 
+    label, 
+    multiple = false, 
+    id, 
+    files = [], 
+    onFileRemove,
+    onInvertToggle,
+    invertedFiles = new Set(),
+    isImage = false,
+    onFileEdit
+}) => {
     const [isDragging, setIsDragging] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,12 +62,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, la
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
-        const files = e.dataTransfer.files;
-        if (files) {
+        const droppedFiles = e.dataTransfer.files;
+        if (droppedFiles) {
             if (multiple) {
-                onFileSelect(Array.from(files));
-            } else if (files.length > 0) {
-                onFileSelect(files[0]);
+                onFileSelect(Array.from(droppedFiles));
+            } else if (droppedFiles.length > 0) {
+                onFileSelect(droppedFiles[0]);
             }
         }
     }, [multiple, onFileSelect]);
@@ -63,7 +79,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, la
         if (accept.includes('image')) return 'PNG, JPG, etc.';
         return 'File';
     };
-
 
     return (
         <div>
@@ -94,15 +109,42 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, accept, la
                         {files.map(file => (
                             <li key={file.name} className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-md text-sm group">
                                 <span className="text-[var(--text-primary)] truncate pr-2">{file.name}</span>
-                                {onFileRemove && (
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); onFileRemove(file.name); }}
-                                        className="text-red-500/70 hover:text-red-400 p-1 rounded-full hover:bg-red-500/20 transition-all transform scale-90 opacity-70 group-hover:scale-100 group-hover:opacity-100"
-                                        aria-label={`Remove ${file.name}`}
-                                    >
-                                        <XIcon className="w-4 h-4" />
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-1">
+                                     {isImage && onFileEdit && (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); onFileEdit(file.name); }}
+                                            className="text-gray-400/70 hover:text-[var(--text-primary)] p-1.5 rounded-md hover:bg-gray-500/20 transition-all transform hover:scale-110 active:scale-100"
+                                            aria-label={`Edit ${file.name}`}
+                                        >
+                                            <PencilIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    
+                                    {isImage && onInvertToggle && (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); onInvertToggle(file.name); }}
+                                            className={`p-1.5 rounded-md transition-all transform hover:scale-110 active:scale-100 ${
+                                                invertedFiles.has(file.name)
+                                                    ? 'bg-[var(--accent-color-500)] text-white'
+                                                    : 'text-gray-400/70 hover:text-[var(--text-primary)] hover:bg-gray-500/20'
+                                            }`}
+                                            aria-label={`Invert colors for ${file.name}`}
+                                            aria-pressed={invertedFiles.has(file.name)}
+                                        >
+                                            <ContrastIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+
+                                    {onFileRemove && (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); onFileRemove(file.name); }}
+                                            className="text-red-500/70 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/20 transition-all transform hover:scale-110 active:scale-100"
+                                            aria-label={`Remove ${file.name}`}
+                                        >
+                                            <XIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
