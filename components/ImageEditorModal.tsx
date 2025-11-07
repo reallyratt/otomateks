@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CropIcon, TrashIcon, XIcon, PlusIcon } from './icons';
 
@@ -292,7 +291,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
 
             <div className="flex-shrink-0 flex flex-col gap-3 p-4 border-t border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-b-lg">
                  <div className="flex items-center gap-2">
-                    <div className="flex-grow flex items-center gap-2 overflow-x-auto pb-2">
+                    <div className="flex-grow flex items-center gap-2 overflow-x-auto py-3">
                         {slides.map((slide, index) => (
                             <button
                                 key={slide.id}
