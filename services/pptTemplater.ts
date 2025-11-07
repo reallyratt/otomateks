@@ -11,7 +11,31 @@ const MAX_TEXT_LENGTH = 140;
 const NS_CONTENT_TYPES = 'http://schemas.openxmlformats.org/package/2006/content-types';
 const NS_RELATIONSHIPS = 'http://schemas.openxmlformats.org/package/2006/relationships';
 const NS_PRESENTATIONML = 'http://purl.oclc.org/ooxml/presentationml/main';
+const NS_DRAWINGML = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const NS_RELATIONSHIPS_OFFICE_DOC = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+/**
+ * Converts a base64 data URL into a Uint8Array.
+ */
+const base64ToUint8Array = (base64: string): Uint8Array => {
+    const base64Content = base64.split(',')[1];
+    if (!base64Content) throw new Error("Invalid base64 string provided.");
+    const binaryString = window.atob(base64Content);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+};
+
+/**
+ * Extracts the MIME type from a base64 data URL.
+ */
+const getMimeTypeFromBase64 = (base64: string): string => {
+    const match = base64.match(/data:(.*?);base64,/);
+    return match ? match[1] : 'application/octet-stream';
+};
 
 
 /**
@@ -38,76 +62,47 @@ const chunkText = (text: string | undefined, maxLength: number): string[] => {
 };
 
 /**
- * Chunks a main text and intelligently appends an ending. If the ending doesn't fit
- * on the last chunk of the main text, it creates a new, separate chunk for the ending.
+ * Chunks a main text and intelligently appends an ending.
  */
 const chunkTextWithEnding = (text: string | undefined, ending: string, maxLength: number): string[] => {
-    // If no text is provided, just return the ending, chunked if necessary.
     if (!text || text.trim() === '') {
         return chunkText(ending.trim(), maxLength);
     }
-
     const mainChunks = chunkText(text, maxLength);
-    
-    // This should not happen if text is not empty, but as a safeguard.
     if (mainChunks.length === 0) {
         return chunkText(ending.trim(), maxLength);
     }
-    
     const lastChunk = mainChunks[mainChunks.length - 1];
-    
-    // Check if the ending can be appended to the last chunk
     if ((lastChunk + ending).length <= maxLength) {
         mainChunks[mainChunks.length - 1] = lastChunk + ending;
     } else {
-        // Otherwise, add the ending as a new chunk (trimmed of leading whitespace)
         mainChunks.push(ending.trim());
     }
-
     return mainChunks;
 };
 
-
-/**
- * Finds the highest number used in slide filenames (e.g., slide1.xml, slide2.xml)
- * to determine the next available number for a new slide.
- */
-const getNextSlideNum = (zip: any): number => {
-    let maxNum = 0;
-    zip.folder('ppt/slides').forEach((relativePath: string, file: any) => {
-        if (file.name.endsWith('.xml')) {
-            const match = relativePath.match(/slide(\d+)\.xml/);
+const getNextIdFactory = (prefix: string, regex: RegExp) => (doc: any, isZip = false): number => {
+    let maxId = 0;
+    const searchTarget = isZip ? doc.folder(prefix) : doc.querySelectorAll(prefix);
+    
+    searchTarget.forEach((item: any, key: any) => {
+        const name = isZip ? item : item.getAttribute('Id');
+        if(name && typeof name === 'string') {
+            const match = name.match(regex);
             if (match) {
                 const num = parseInt(match[1], 10);
-                if (num > maxNum) maxNum = num;
+                if (num > maxId) maxId = num;
             }
         }
     });
-    return maxNum + 1;
+    return maxId + 1;
 };
 
-/**
- * Finds the highest number used for relationship IDs (rId) in an XML document.
- */
-const getNextRid = (doc: XMLDocument): number => {
-    let maxRid = 0;
-    const relationships = doc.querySelectorAll('Relationship');
-    relationships.forEach(rel => {
-        const id = rel.getAttribute('Id');
-        if (id) {
-            const match = id.match(/rId(\d+)/);
-            if (match) {
-                const num = parseInt(match[1], 10);
-                if (num > maxRid) maxRid = num;
-            }
-        }
-    });
-    return maxRid + 1;
-}
 
-/**
- * Finds the highest slide ID number from presentation.xml to avoid collisions.
- */
+const getNextSlideNum = getNextIdFactory('ppt/slides', /slide(\d+)\.xml/);
+const getNextRid = getNextIdFactory('Relationship', /rId(\d+)/);
+const getNextMediaId = getNextIdFactory('ppt/media', /image(\d+)\./);
+
 const getNextXmlSlideId = (doc: XMLDocument): number => {
     let maxId = 0;
     const sldIds = doc.querySelectorAll('sldId');
@@ -118,47 +113,147 @@ const getNextXmlSlideId = (doc: XMLDocument): number => {
             if (num > maxId) maxId = num;
         }
     });
-    // According to specs, it must be >= 256.
     return Math.max(maxId + 1, 256);
 };
 
-
-/**
- * Replaces all non-splittable placeholders in a given slide XML.
- */
-const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationData, splittableKey: string | null) => {
+const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: keyof PresentationData | null; shape: Element | null } => {
     const textNodes = slideXmlDoc.querySelectorAll('t');
-    textNodes.forEach(node => {
-        if (!node.textContent) return;
-
-        node.textContent = node.textContent.replace(/{{([a-zA-Z0-9]+)}}/g, (match, keyName: keyof PresentationData) => {
-            if (keyName === splittableKey) {
-                return match; // Don't replace the splittable key, return original placeholder
+    for (const node of textNodes) {
+        if (node.textContent) {
+            const match = node.textContent.match(/{{([a-zA-Z0-9]+Images)}}/);
+            if (match) {
+                const key = match[1] as keyof PresentationData;
+                let parent = node.parentElement;
+                while (parent) {
+                    if (parent.nodeName === 'p:sp') {
+                        return { key, shape: parent };
+                    }
+                    parent = parent.parentElement;
+                }
             }
-            
-            const propertyValue = data[keyName];
-            
-            if (typeof propertyValue === 'string') {
-                return propertyValue;
-            }
+        }
+    }
+    return { key: null, shape: null };
+};
 
-            // For non-string types (like string[] for images) or undefined properties, replace with an empty string.
-            return '';
-        });
+const getImageDimensions = (base64: string): Promise<{ width: number, height: number }> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.onerror = () => reject(new Error('Could not load image to get dimensions.'));
+        img.src = base64;
     });
 };
 
-/**
- * Replaces a specific placeholder with a given text chunk.
- */
-const replaceChunkPlaceholder = (slideXmlDoc: XMLDocument, key: string, chunk: string) => {
-    const textNodes = slideXmlDoc.querySelectorAll('t');
-     textNodes.forEach(node => {
-        if (node.textContent && node.textContent.includes(`{{${key}}}`)) {
-             node.textContent = node.textContent.replace(`{{${key}}}`, chunk);
+const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imageBase64: string) => {
+    const doc = shapeElement.ownerDocument;
+    const txBody = shapeElement.querySelector('txBody');
+    if (txBody) txBody.remove();
+
+    let spPr = shapeElement.querySelector('spPr');
+    if (!spPr) {
+        spPr = doc.createElementNS(NS_PRESENTATIONML, 'p:spPr');
+        shapeElement.insertBefore(spPr, shapeElement.firstChild);
+    }
+    
+    const existingFill = spPr.querySelector('solidFill, gradFill, noFill, pattFill, blipFill');
+    if (existingFill) existingFill.remove();
+
+    let srcRect: Element | null = null;
+    try {
+        const ext = spPr.querySelector('xfrm ext');
+        const shapeCx = ext?.getAttribute('cx');
+        const shapeCy = ext?.getAttribute('cy');
+
+        if (shapeCx && shapeCy) {
+            const shapeWidth = parseInt(shapeCx, 10);
+            const shapeHeight = parseInt(shapeCy, 10);
+            
+            if (shapeHeight > 0) {
+                const shapeAspect = shapeWidth / shapeHeight;
+                const { width: imageWidth, height: imageHeight } = await getImageDimensions(imageBase64);
+                
+                if (imageHeight > 0) {
+                    const imageAspect = imageWidth / imageHeight;
+                    if (Math.abs(shapeAspect - imageAspect) > 0.01) { // Ratios are different, calculate crop
+                        srcRect = doc.createElementNS(NS_DRAWINGML, 'a:srcRect');
+                        if (imageAspect > shapeAspect) { // Image is wider, crop sides
+                            const newImageWidth = shapeAspect * imageHeight;
+                            const cropFactor = (imageWidth - newImageWidth) / imageWidth;
+                            const cropValue = Math.round((cropFactor / 2) * 100000);
+                            if (cropValue > 0) {
+                                srcRect.setAttribute('l', String(cropValue));
+                                srcRect.setAttribute('r', String(cropValue));
+                            }
+                        } else { // Image is taller, crop top/bottom
+                            const newImageHeight = imageWidth / shapeAspect;
+                            const cropFactor = (imageHeight - newImageHeight) / imageHeight;
+                            const cropValue = Math.round((cropFactor / 2) * 100000);
+                             if (cropValue > 0) {
+                                srcRect.setAttribute('t', String(cropValue));
+                                srcRect.setAttribute('b', String(cropValue));
+                            }
+                        }
+                    }
+                }
+            }
         }
+    } catch (e) {
+        console.warn("Could not calculate image cropping, default stretching will be applied.", e);
+        srcRect = null;
+    }
+
+    const blipFill = doc.createElementNS(NS_DRAWINGML, 'a:blipFill');
+    const blip = doc.createElementNS(NS_DRAWINGML, 'a:blip');
+    blip.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:embed', imageRId);
+    blipFill.appendChild(blip);
+    
+    if (srcRect && srcRect.hasAttributes()) {
+        blipFill.appendChild(srcRect);
+    }
+    
+    const stretch = doc.createElementNS(NS_DRAWINGML, 'a:stretch');
+    const fillRect = doc.createElementNS(NS_DRAWINGML, 'a:fillRect');
+    stretch.appendChild(fillRect);
+    blipFill.appendChild(stretch);
+    spPr.appendChild(blipFill);
+};
+
+const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, contentTypesXmlDoc: XMLDocument, imageBase64: string): Promise<string> => {
+    const mediaId = getNextMediaId(zip, true);
+    const mimeType = getMimeTypeFromBase64(imageBase64);
+    const extension = mimeType.split('/')[1] || 'png';
+    const imageFileName = `image${mediaId}.${extension}`;
+    const imagePath = `ppt/media/${imageFileName}`;
+    const imageBytes = base64ToUint8Array(imageBase64);
+
+    zip.file(imagePath, imageBytes, { binary: true });
+    
+    const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+    newOverride.setAttribute('PartName', `/${imagePath}`);
+    newOverride.setAttribute('ContentType', `image/${extension}`);
+    contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+    
+    const newRelId = `rId${getNextRid(slideRelsXmlDoc)}`;
+    const newRel = slideRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+    newRel.setAttribute('Id', newRelId);
+    newRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+    newRel.setAttribute('Target', `../media/${imageFileName}`);
+    slideRelsXmlDoc.querySelector('Relationships')?.appendChild(newRel);
+
+    return newRelId;
+};
+
+const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationData, ignoredKey: string | null) => {
+    slideXmlDoc.querySelectorAll('t').forEach(node => {
+        if (!node.textContent) return;
+        node.textContent = node.textContent.replace(/{{([a-zA-Z0-9]+)}}/g, (match, keyName: keyof PresentationData) => {
+            if (keyName === ignoredKey || keyName.endsWith('Images')) return match;
+            const propertyValue = data[keyName];
+            return typeof propertyValue === 'string' ? propertyValue : '';
+        });
     });
-}
+};
 
 export const processTemplate = async (data: PresentationData, templateFile: File, language: Language) => {
     const endings = {
@@ -170,19 +265,10 @@ export const processTemplate = async (data: PresentationData, templateFile: File
             doaSesudahKomuni: '\n\nU: Amin',
             doaAtasPersembahan: '\n\nU: Amin',
         },
-        jawa: {
-            bacaan: '\n\nL: Makaten sabda Dalem Gusti…\nU: Sembah Nuwun Konjuk Ing Gusti',
-            injil: '\n\nL: Makaten sabda Dalem Gusti…\nU: Pinujia Sang Kristus',
-            kolekta: '\n\nU: Amin',
-            doaUmatImam: '\n\nU: Amin',
-            doaSesudahKomuni: '\n\nU: Amin',
-            doaAtasPersembahan: '\n\nU: Amin',
-        }
+        jawa: { /* ... */ }
     };
-    
-    const zip = await JSZip.loadAsync(templateFile);
 
-    // 1. Read Core PPTX Structure Files
+    const zip = await JSZip.loadAsync(templateFile);
     const presXmlStr = await zip.file('ppt/presentation.xml').async('string');
     const presXmlDoc = parser.parseFromString(presXmlStr, 'application/xml');
     const presRelsXmlStr = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
@@ -193,189 +279,165 @@ export const processTemplate = async (data: PresentationData, templateFile: File
     const slideIdList = presXmlDoc.querySelector('sldIdLst');
     if (!slideIdList) throw new Error('Invalid presentation format: <p:sldIdLst> not found.');
 
-    const originalSlideIds = Array.from(slideIdList.querySelectorAll('sldId'));
-    let slideInsertionIndex = 0;
+    let nextAvailableSlideNum = getNextSlideNum(zip, true);
     let nextAvailableSlideId = getNextXmlSlideId(presXmlDoc);
 
-    for (const sldId of originalSlideIds) {
-        slideInsertionIndex++;
+    const newSlideIdNodes = [];
+    
+    for (const sldId of Array.from(slideIdList.querySelectorAll('sldId'))) {
         const rId = sldId.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
-        if (!rId) continue;
-
-        const rel = presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`);
-        if (!rel) continue;
+        const rel = rId ? presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`) : null;
+        if (!rel) {
+            newSlideIdNodes.push(sldId.cloneNode(true));
+            continue;
+        }
 
         const slidePath = `ppt/${rel.getAttribute('Target')}`;
         const slideXmlStr = await zip.file(slidePath).async('string');
         const slideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
+        
+        const slideRelsPath = slidePath.replace('slides/', 'slides/_rels/') + '.rels';
+        const slideRelsStr = await zip.file(slideRelsPath)?.async('string') || `<Relationships xmlns="${NS_RELATIONSHIPS}"></Relationships>`;
+        const slideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
 
-        // Find a placeholder that needs splitting or has a special ending
+        // Check for Image Placeholders first
+        const { key: imageKey, shape: imageShape } = findImagePlaceholder(slideXmlDoc);
+        const images = (imageKey && data[imageKey] && Array.isArray(data[imageKey])) ? data[imageKey] as string[] : [];
+
+        if (images.length > 0 && imageShape) {
+            for (let i = 0; i < images.length; i++) {
+                const isOriginalSlide = i === 0;
+                const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
+                const currentSlideRelsXmlDoc = isOriginalSlide ? slideRelsXmlDoc : parser.parseFromString(slideRelsStr, 'application/xml');
+                const currentShape = isOriginalSlide ? imageShape : findImagePlaceholder(currentSlideXmlDoc).shape;
+
+                if (currentShape) {
+                    const imageBase64 = images[i];
+                    const imageRId = await addImageToPackage(zip, currentSlideRelsXmlDoc, contentTypesXmlDoc, imageBase64);
+                    await modifyShapeForImage(currentShape, imageRId, imageBase64);
+                }
+                
+                replaceSimplePlaceholders(currentSlideXmlDoc, data, null);
+                
+                if (isOriginalSlide) {
+                    zip.file(slidePath, serializer.serializeToString(currentSlideXmlDoc));
+                    zip.file(slideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
+                    newSlideIdNodes.push(sldId.cloneNode(true));
+                } else {
+                    const newSlideNum = nextAvailableSlideNum++;
+                    const newSlideId = nextAvailableSlideId++;
+                    const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                    const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                    const newSlideRelsPath = newSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
+
+                    zip.file(newSlidePath, serializer.serializeToString(currentSlideXmlDoc));
+                    zip.file(newSlideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
+
+                    const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                    newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                    newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                    contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                    
+                    const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                    newPresRel.setAttribute('Id', newPresRelId);
+                    newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                    newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                    presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                    
+                    const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                    newSldIdNode.setAttribute('id', String(newSlideId));
+                    newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                    newSlideIdNodes.push(newSldIdNode);
+                }
+            }
+            continue;
+        }
+
+        // Check for Text Splitting
         let splittableKey: keyof PresentationData | null = null;
         let chunks: string[] = [];
-
         const textNodes = slideXmlDoc.querySelectorAll('t');
         for (const node of textNodes) {
             if (node.textContent) {
-                const placeholders = node.textContent.match(/{{([a-zA-Z0-9]+)}}/g) || [];
-                for (const placeholder of placeholders) {
-                    const key = placeholder.replace(/[{}]/g, '') as keyof PresentationData;
-                    const textValue = (data as any)[key];
-                    
-                    if (textValue && typeof textValue === 'string') {
-                        const isLong = textValue.length > MAX_TEXT_LENGTH;
-                        let needsChunking = isLong;
-                        let specificEnding = null;
+                const match = node.textContent.match(/{{([a-zA-Z0-9]+Text)}}/);
+                if (match) {
+                    const key = match[1] as keyof PresentationData;
+                    const textValue = data[key];
+                    if (typeof textValue === 'string') {
+                        let ending = null;
+                        if (key === 'bacaan1Text' || key === 'bacaan2Text') ending = endings[language].bacaan;
+                        else if (key === 'bacaanInjilText') ending = endings[language].injil;
+                        else if (key === 'doaKolektaText' || key === 'doaUmat11ImamText' || key === 'doaSesudahKomuniText' || key === 'doaAtasPersembahanText') ending = endings[language].kolekta;
 
-                        if (key === 'bacaan1Text' || key === 'bacaan2Text') {
-                            specificEnding = endings[language].bacaan;
-                        } else if (key === 'bacaanInjilText') {
-                            specificEnding = endings[language].injil;
-                        } else if (key === 'doaKolektaText') {
-                            specificEnding = endings[language].kolekta;
-                        } else if (key === 'doaUmat11ImamText') {
-                            specificEnding = endings[language].doaUmatImam;
-                        } else if (key === 'doaSesudahKomuniText') {
-                            specificEnding = endings[language].doaSesudahKomuni;
-                        } else if (key === 'doaAtasPersembahanText') {
-                            specificEnding = endings[language].doaAtasPersembahan;
-                        }
-
-                        if (specificEnding && textValue.trim().length > 0) {
-                            needsChunking = true;
-                        }
-                        
-                        if (needsChunking) {
+                        if (textValue.length > MAX_TEXT_LENGTH || (ending && textValue.trim().length > 0)) {
                             splittableKey = key;
-                            if (specificEnding) {
-                                chunks = chunkTextWithEnding(textValue, specificEnding, MAX_TEXT_LENGTH);
-                            } else {
-                                chunks = chunkText(textValue, MAX_TEXT_LENGTH);
-                            }
-                            break; 
+                            chunks = ending ? chunkTextWithEnding(textValue, ending, MAX_TEXT_LENGTH) : chunkText(textValue, MAX_TEXT_LENGTH);
+                            break;
                         }
                     }
                 }
             }
-            if (splittableKey) break;
-        }
-
-
-        if (!splittableKey) {
-            replaceSimplePlaceholders(slideXmlDoc, data, null);
-            zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
-            continue;
         }
         
-        replaceSimplePlaceholders(slideXmlDoc, data, splittableKey);
-        replaceChunkPlaceholder(slideXmlDoc, splittableKey, chunks[0]);
-        zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
-        
-        const slideRelsPath = slidePath.replace('slides/', 'slides/_rels/') + '.rels';
-        const slideRelsStr = await zip.file(slideRelsPath)?.async('string');
+        if (splittableKey && chunks.length > 1) {
+             for (let i = 0; i < chunks.length; i++) {
+                const isOriginalSlide = i === 0;
+                const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
 
-        let nextSlideNumCounter = getNextSlideNum(zip);
+                replaceSimplePlaceholders(currentSlideXmlDoc, data, splittableKey);
+                currentSlideXmlDoc.querySelectorAll('t').forEach(node => {
+                    if (node.textContent?.includes(`{{${splittableKey}}}`)) {
+                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[i]);
+                    }
+                });
 
-        for (let i = 1; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            const newSlideNum = nextSlideNumCounter++;
-            const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
-            const newSlideId = nextAvailableSlideId++;
+                if (isOriginalSlide) {
+                    zip.file(slidePath, serializer.serializeToString(currentSlideXmlDoc));
+                    newSlideIdNodes.push(sldId.cloneNode(true));
+                } else {
+                    const newSlideNum = nextAvailableSlideNum++;
+                    const newSlideId = nextAvailableSlideId++;
+                    const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                    const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                    
+                    zip.file(newSlidePath, serializer.serializeToString(currentSlideXmlDoc));
+                    if (zip.file(slideRelsPath)) zip.file(newSlidePath.replace('slides/', 'slides/_rels/') + '.rels', await zip.file(slideRelsPath).async('string'));
 
-            const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
-            const newSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
-            replaceSimplePlaceholders(newSlideXmlDoc, data, splittableKey);
-            replaceChunkPlaceholder(newSlideXmlDoc, splittableKey, chunk);
-            zip.file(newSlidePath, serializer.serializeToString(newSlideXmlDoc));
-
-            if (slideRelsStr) {
-                const newSlideRelsPath = newSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
-                zip.file(newSlideRelsPath, slideRelsStr);
+                    const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                    newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                    newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                    contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                    
+                    const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                    newPresRel.setAttribute('Id', newPresRelId);
+                    newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                    newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                    presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                    
+                    const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                    newSldIdNode.setAttribute('id', String(newSlideId));
+                    newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                    newSlideIdNodes.push(newSldIdNode);
+                }
             }
-
-            const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
-            newOverride.setAttribute('PartName', `/${newSlidePath}`);
-            newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
-            contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
-            
-            const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
-            newPresRel.setAttribute('Id', newPresRelId);
-            newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
-            newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
-            presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
-            
-            const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
-            newSldIdNode.setAttribute('id', String(newSlideId));
-            newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
-            
-            const allCurrentSldIds = Array.from(slideIdList.querySelectorAll('sldId'));
-            slideIdList.insertBefore(newSldIdNode, allCurrentSldIds[slideInsertionIndex]);
-            slideInsertionIndex++;
+        } else {
+            // Simple slide
+            if(splittableKey && chunks.length > 0) {
+                 slideXmlDoc.querySelectorAll('t').forEach(node => {
+                    if (node.textContent?.includes(`{{${splittableKey}}}`)) {
+                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[0]);
+                    }
+                });
+            }
+            replaceSimplePlaceholders(slideXmlDoc, data, splittableKey);
+            zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
+            newSlideIdNodes.push(sldId.cloneNode(true));
         }
     }
 
-    // --- SLIDE RE-NUMBERING AND SANITIZATION ---
-    const finalSlideIdNodes = Array.from(slideIdList.querySelectorAll('sldId'));
-    const typesNode = contentTypesXmlDoc.querySelector('Types');
-    if (!typesNode) throw new Error('Invalid [Content_Types].xml: <Types> not found.');
-
-    const slideDataCache = [];
-    for (const sldIdNode of finalSlideIdNodes) {
-        const rId = sldIdNode.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
-        const relNode = presRelsXmlDoc.querySelector(`Relationship[Id="${rId}"]`);
-        const oldTargetPath = relNode?.getAttribute('Target');
-        if (!rId || !relNode || !oldTargetPath) continue;
-        
-        const oldFullPath = `ppt/${oldTargetPath}`;
-        const oldRelsPath = `ppt/slides/_rels/${oldTargetPath.split('/')[1]}.rels`;
-
-        const slideContent = await zip.file(oldFullPath)?.async('string');
-        const relsContent = zip.file(oldRelsPath) ? await zip.file(oldRelsPath).async('string') : null;
-
-        if (slideContent) {
-            slideDataCache.push({ relNode, slideContent, relsContent });
-        }
-    }
-
-    zip.folder('ppt/slides').forEach((_, file) => {
-        if (!file.dir) zip.remove(file.name);
-    });
+    while (slideIdList.firstChild) slideIdList.removeChild(slideIdList.firstChild);
+    newSlideIdNodes.forEach(node => slideIdList.appendChild(node));
     
-    Array.from(typesNode.querySelectorAll('Override')).forEach(override => {
-        const partName = override.getAttribute('PartName');
-        if (partName && partName.startsWith('/ppt/slides/')) {
-            override.remove();
-        }
-    });
-
-    for (let i = 0; i < slideDataCache.length; i++) {
-        const cacheItem = slideDataCache[i];
-        const newSlideNum = i + 1;
-        
-        const newTargetPath = `slides/slide${newSlideNum}.xml`;
-        const newFullPath = `ppt/${newTargetPath}`;
-        const newRelsPath = `ppt/slides/_rels/slide${newSlideNum}.xml.rels`;
-        
-        zip.file(newFullPath, cacheItem.slideContent);
-        if (cacheItem.relsContent) {
-            zip.file(newRelsPath, cacheItem.relsContent);
-        }
-        
-        cacheItem.relNode.setAttribute('Target', newTargetPath);
-
-        const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
-        newOverride.setAttribute('PartName', `/${newFullPath}`);
-        newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
-        typesNode.appendChild(newOverride);
-        
-        if (cacheItem.relsContent) {
-            const newRelsOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
-            newRelsOverride.setAttribute('PartName', `/${newRelsPath}`);
-            newRelsOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.package.relationships+xml');
-            typesNode.appendChild(newRelsOverride);
-        }
-    }
-
-
     zip.file('ppt/presentation.xml', serializer.serializeToString(presXmlDoc));
     zip.file('ppt/_rels/presentation.xml.rels', serializer.serializeToString(presRelsXmlDoc));
     zip.file('[Content_Types].xml', serializer.serializeToString(contentTypesXmlDoc));

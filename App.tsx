@@ -165,6 +165,7 @@ const App: React.FC = () => {
     const [presentationData, setPresentationData] = useState<PresentationData>(defaultTitlesIndonesia);
     const [inputModes, setInputModes] = useState<{ [key: string]: 'text' | 'image' }>({});
     const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File[] }>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
@@ -269,11 +270,25 @@ const App: React.FC = () => {
 
     const handleFileChange = async (key: string, files: File | File[]) => {
         const fileArray = Array.isArray(files) ? files : [files];
+        setUploadedFiles(prev => ({ ...prev, [key]: fileArray }));
+
         if (fileArray.length === 0) {
              setPresentationData(prev => ({ ...prev, [`${key}Images`]: [] }));
              return;
         }
         const base64Files = await Promise.all(fileArray.map(fileToBase64));
+        setPresentationData(prev => ({ ...prev, [`${key}Images`]: base64Files }));
+    };
+
+    const handleFileRemove = async (key: string, fileNameToRemove: string) => {
+        const newFiles = (uploadedFiles[key] || []).filter(f => f.name !== fileNameToRemove);
+        setUploadedFiles(prev => ({ ...prev, [key]: newFiles }));
+
+        if (newFiles.length === 0) {
+            setPresentationData(prev => ({ ...prev, [`${key}Images`]: [] }));
+            return;
+        }
+        const base64Files = await Promise.all(newFiles.map(fileToBase64));
         setPresentationData(prev => ({ ...prev, [`${key}Images`]: base64Files }));
     };
 
@@ -283,6 +298,10 @@ const App: React.FC = () => {
             setUploadedTemplate(templateFile);
         }
     }
+    
+    const handleTemplateRemove = () => {
+        setUploadedTemplate(null);
+    };
 
     const handleModeChange = (key: string, mode: 'text' | 'image') => {
         setInputModes(prev => ({...prev, [key]: mode}));
@@ -457,7 +476,9 @@ const App: React.FC = () => {
                                                 id="template-upload"
                                                 onFileSelect={handleTemplateUpload}
                                                 accept=".pptx"
-                                                label={uploadedTemplate ? t('uploadTemplateSelected').replace('{fileName}', uploadedTemplate.name) : t('uploadTemplateLabel')}
+                                                label={t('uploadTemplateLabel')}
+                                                files={uploadedTemplate ? [uploadedTemplate] : []}
+                                                onFileRemove={handleTemplateRemove}
                                             />
                                         </div>
 
@@ -585,6 +606,8 @@ const App: React.FC = () => {
                                                                     multiple={isMultiImage}
                                                                     accept="image/*"
                                                                     label="Click to upload"
+                                                                    files={uploadedFiles[field.key] || []}
+                                                                    onFileRemove={(fileName) => handleFileRemove(field.key, fileName)}
                                                                 />
                                                             </div>
                                                         )}
