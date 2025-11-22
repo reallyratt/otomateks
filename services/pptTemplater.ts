@@ -34,9 +34,18 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
  */
 const getMimeTypeFromBase64 = (base64: string): string => {
     const match = base64.match(/data:(.*?);base64,/);
-    return match ? match[1] : 'application/octet-stream';
+    return match ? match[1] : 'image/png';
 };
 
+const getExtensionFromMime = (mime: string): string => {
+    switch (mime) {
+        case 'image/jpeg': return 'jpg';
+        case 'image/jpg': return 'jpg';
+        case 'image/png': return 'png';
+        case 'image/gif': return 'gif';
+        default: return 'png';
+    }
+};
 
 /**
  * Chunks a long string into smaller pieces, ensuring cuts happen at spaces.
@@ -116,8 +125,31 @@ const getNextXmlSlideId = (doc: XMLDocument): number => {
     return Math.max(maxId + 1, 256);
 };
 
+// Helper to get elements by local name (ignoring namespace prefix issues in querySelector)
+const getElementsByLocalName = (parent: Element | Document, localName: string): Element[] => {
+    const result: Element[] = [];
+    const nodes = parent.getElementsByTagName('*');
+    for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].localName === localName) {
+            result.push(nodes[i]);
+        }
+    }
+    return result;
+};
+
+// Helper to get a direct child by local name
+const getDirectChildByLocalName = (parent: Element, localName: string): Element | null => {
+    for (let i = 0; i < parent.childNodes.length; i++) {
+        const child = parent.childNodes[i] as Element;
+        if (child.nodeType === 1 && child.localName === localName) {
+            return child;
+        }
+    }
+    return null;
+};
+
 const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: keyof PresentationData | null; shape: Element | null } => {
-    const textNodes = slideXmlDoc.querySelectorAll('t');
+    const textNodes = getElementsByLocalName(slideXmlDoc, 't');
     for (const node of textNodes) {
         if (node.textContent) {
             const match = node.textContent.match(/{{([a-zA-Z0-9]+Images)}}/);
@@ -125,7 +157,7 @@ const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: keyof Presentati
                 const key = match[1] as keyof PresentationData;
                 let parent = node.parentElement;
                 while (parent) {
-                    if (parent.nodeName === 'p:sp') {
+                    if (parent.localName === 'sp') {
                         return { key, shape: parent };
                     }
                     parent = parent.parentElement;
@@ -147,21 +179,29 @@ const getImageDimensions = (base64: string): Promise<{ width: number, height: nu
 
 const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imageBase64: string) => {
     const doc = shapeElement.ownerDocument;
-    const txBody = shapeElement.querySelector('txBody');
-    if (txBody) txBody.remove();
+    
+    // Find and remove txBody (Text Body)
+    const txBody = getDirectChildByLocalName(shapeElement, 'txBody');
+    if (txBody) shapeElement.removeChild(txBody);
 
-    let spPr = shapeElement.querySelector('spPr');
+    // Find spPr (Shape Properties) or create it
+    let spPr = getDirectChildByLocalName(shapeElement, 'spPr');
     if (!spPr) {
         spPr = doc.createElementNS(NS_PRESENTATIONML, 'p:spPr');
         shapeElement.insertBefore(spPr, shapeElement.firstChild);
     }
     
-    // Remove any existing fill to ensure transparency
-    const existingFill = spPr.querySelector('solidFill, gradFill, noFill, pattFill, blipFill');
-    if (existingFill) existingFill.remove();
+    // Remove any existing fill to ensure transparency/correct rendering
+    const fillTypes = ['noFill', 'solidFill', 'gradFill', 'blipFill', 'pattFill', 'grpFill'];
+    for (let i = spPr.childNodes.length - 1; i >= 0; i--) {
+        const child = spPr.childNodes[i] as Element;
+        if (child.nodeType === 1 && fillTypes.includes(child.localName)) {
+            spPr.removeChild(child);
+        }
+    }
     
     // Remove shape outline by replacing it with a "noFill" line
-    const line = spPr.querySelector('ln');
+    const line = getDirectChildByLocalName(spPr, 'ln');
     if (line) {
         while (line.firstChild) line.removeChild(line.firstChild);
         const noFill = doc.createElementNS(NS_DRAWINGML, 'a:noFill');
@@ -170,7 +210,10 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
 
     const blipFill = doc.createElementNS(NS_DRAWINGML, 'a:blipFill');
     const blip = doc.createElementNS(NS_DRAWINGML, 'a:blip');
-    blip.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:embed', imageRId);
+    
+    // Explicitly use setAttribute for r:embed to match typical PPT expectation, 
+    // avoiding potential serializer issues with NS prefix resolution on some browsers
+    blip.setAttribute('r:embed', imageRId);
     blipFill.appendChild(blip);
     
     // Logic to fit image within shape bounds (contain)
@@ -178,7 +221,9 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
     const fillRect = doc.createElementNS(NS_DRAWINGML, 'a:fillRect');
     
     try {
-        const ext = spPr.querySelector('xfrm ext');
+        const xfrm = getDirectChildByLocalName(spPr, 'xfrm');
+        const ext = xfrm ? getDirectChildByLocalName(xfrm, 'ext') : null;
+        
         const shapeCx = ext?.getAttribute('cx');
         const shapeCy = ext?.getAttribute('cy');
 
@@ -221,14 +266,28 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
     
     stretch.appendChild(fillRect);
     blipFill.appendChild(stretch);
-    spPr.appendChild(blipFill);
+
+    // CRITICAL: Insert blipFill at the correct position in spPr (Schema: xfrm?, geometry?, fill?, ln?, effectLst?...)
+    // Adding it after 'ln' causes PPT to consider the file corrupt or ignore the fill.
+    const successors = ['ln', 'effectLst', 'scene3d', 'sp3d', 'extLst'];
+    let nextSibling = null;
+    for (const name of successors) {
+        nextSibling = getDirectChildByLocalName(spPr, name);
+        if (nextSibling) break;
+    }
+
+    if (nextSibling) {
+        spPr.insertBefore(blipFill, nextSibling);
+    } else {
+        spPr.appendChild(blipFill);
+    }
 };
 
 
 const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, contentTypesXmlDoc: XMLDocument, imageBase64: string): Promise<string> => {
     const mediaId = getNextMediaId(zip, true);
     const mimeType = getMimeTypeFromBase64(imageBase64);
-    const extension = mimeType.split('/')[1] || 'png';
+    const extension = getExtensionFromMime(mimeType);
     const imageFileName = `image${mediaId}.${extension}`;
     const imagePath = `ppt/media/${imageFileName}`;
     const imageBytes = base64ToUint8Array(imageBase64);
@@ -237,13 +296,16 @@ const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, content
     
     const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
     newOverride.setAttribute('PartName', `/${imagePath}`);
-    newOverride.setAttribute('ContentType', `image/${extension}`);
+    newOverride.setAttribute('ContentType', mimeType);
     contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
     
     const newRelId = `rId${getNextRid(slideRelsXmlDoc)}`;
     const newRel = slideRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
     newRel.setAttribute('Id', newRelId);
     newRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+    // Relationship target is relative to the slide file (ppt/slides/slideX.xml)
+    // Image is in ppt/media/
+    // So path is ../media/imageX.ext
     newRel.setAttribute('Target', `../media/${imageFileName}`);
     slideRelsXmlDoc.querySelector('Relationships')?.appendChild(newRel);
 
@@ -251,7 +313,8 @@ const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, content
 };
 
 const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationData, ignoredKey: string | null) => {
-    slideXmlDoc.querySelectorAll('t').forEach(node => {
+    const textNodes = getElementsByLocalName(slideXmlDoc, 't');
+    textNodes.forEach(node => {
         if (!node.textContent) return;
         node.textContent = node.textContent.replace(/{{([a-zA-Z0-9]+)}}/g, (match, keyName: keyof PresentationData) => {
             if (keyName === ignoredKey || keyName.endsWith('Images')) return match;
@@ -362,7 +425,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         // Check for Text Splitting
         let splittableKey: keyof PresentationData | null = null;
         let chunks: string[] = [];
-        const textNodes = slideXmlDoc.querySelectorAll('t');
+        const textNodes = getElementsByLocalName(slideXmlDoc, 't');
         for (const node of textNodes) {
             if (node.textContent) {
                 const match = node.textContent.match(/{{([a-zA-Z0-9]+Text)}}/);
@@ -391,7 +454,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
 
                 replaceSimplePlaceholders(currentSlideXmlDoc, data, splittableKey);
-                currentSlideXmlDoc.querySelectorAll('t').forEach(node => {
+                getElementsByLocalName(currentSlideXmlDoc, 't').forEach(node => {
                     if (node.textContent?.includes(`{{${splittableKey}}}`)) {
                         node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[i]);
                     }
@@ -429,7 +492,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         } else {
             // Simple slide
             if(splittableKey && chunks.length > 0) {
-                 slideXmlDoc.querySelectorAll('t').forEach(node => {
+                 getElementsByLocalName(slideXmlDoc, 't').forEach(node => {
                     if (node.textContent?.includes(`{{${splittableKey}}}`)) {
                         node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[0]);
                     }
