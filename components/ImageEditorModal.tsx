@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CropIcon, TrashIcon, XIcon, PlusIcon } from './icons';
 
@@ -187,7 +188,9 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         for (const [index, slide] of slides.entries()) {
             if (slide.rects.length === 0) continue;
 
-            const sortedRects = [...slide.rects].sort((a, b) => a.y - b.y);
+            // Use creation order (index) so that Crop 1 is top, Crop 2 is below, etc.
+            // Do not sort by Y position.
+            const sortedRects = [...slide.rects];
 
             let totalHeight = 0;
             let maxWidth = 0;
