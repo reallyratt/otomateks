@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const Highlight: React.FC<{children: React.ReactNode}> = ({ children }) => <span className="font-semibold text-[var(--accent-color-300)]">{children}</span>;
@@ -15,10 +16,18 @@ export const TemplateCreationGuide: React.FC = () => {
                     <li>Create a new presentation in PowerPoint or Google Slides.</li>
                     <li>Design your slides exactly how you want them to look: add backgrounds, logos, static text, etc.</li>
                     <li>
-                        Wherever you need to insert dynamic content from the form, type a placeholder in a text box. The placeholder must be enclosed in double curly braces, like: <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{placeholderName}}`}</code>.
+                        Wherever you need to insert dynamic content from the form, type a placeholder in a text box. The placeholder must be enclosed in double curly braces, like: <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{A01}}`}</code>.
                     </li>
                     <li>
-                        The <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">placeholderName</code> must match the ID of the field from the form. For example, to insert the title for "Bacaan I", you would type <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{bacaan1Title}}`}</code>. For the text content, use <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{bacaan1Text}}`}</code>.
+                        The placeholders use a simple ID system:
+                        <ul className="list-disc list-inside pl-4 mt-1">
+                            <li><code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">A...</code> keys are for Titles.</li>
+                            <li><code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">B...</code> keys are for Text bodies.</li>
+                            <li><code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">C...</code> keys are for Images.</li>
+                        </ul>
+                    </li>
+                    <li>
+                        For example, for the Opening Song, use <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{A01}}`}</code> for the title and <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{B01}}`}</code> for the lyrics.
                     </li>
                      <li>Save the presentation as a .pptx file. This is your template!</li>
                 </ol>
@@ -26,9 +35,9 @@ export const TemplateCreationGuide: React.FC = () => {
 
             <h3 className="text-lg font-semibold text-[var(--accent-color-400)] pt-2">Example Slide:</h3>
             <div className="bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border-primary)] font-mono text-xs text-[var(--text-secondary)]">
-                <p className="text-[var(--accent-color-400)]">{`{{laguPembukaTitle}}`}</p>
+                <p className="text-[var(--accent-color-400)]">{`{{A01}}`}</p>
                 <br />
-                <p>{`{{laguPembukaText}}`}</p>
+                <p>{`{{B01}}`}</p>
             </div>
 
              <div className="bg-[var(--accent-color-500)]/10 text-[var(--accent-color-300)] p-4 rounded-lg border border-[var(--accent-color-500)]/30 space-y-3 mt-6">
@@ -38,7 +47,7 @@ export const TemplateCreationGuide: React.FC = () => {
                     <h4 className="font-bold text-[var(--text-primary)]">1. Image Placeholders</h4>
                     <ul className="list-disc list-inside text-xs space-y-1 pl-2">
                         <li>
-                            To insert an image, create any shape (a text box, rectangle, etc.) and type an image placeholder inside it, e.g., <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{laguPembukaImages}}`}</code>.
+                            To insert an image, create any shape (a text box, rectangle, etc.) and type an image placeholder inside it, e.g., <code className="bg-[var(--bg-tertiary)] px-1 py-0.5 rounded text-[var(--accent-color-300)]">{`{{C01}}`}</code>.
                         </li>
                         <li>
                             The app replaces the <Highlight>entire shape</Highlight> with your uploaded image, fitting it perfectly while maintaining the aspect ratio.
@@ -56,7 +65,7 @@ export const TemplateCreationGuide: React.FC = () => {
                             Long texts (like readings) are <Highlight>automatically split</Highlight> across multiple slides. No manual work needed!
                         </li>
                         <li>
-                            The system is smart enough to add liturgical endings (e.g., "Demikianlah Sabda Tuhan...") only to the very last slide of the sequence.
+                            The system is smart enough to add liturgical endings (e.g., "Demikianlah Sabda Tuhan...") only to the very last slide of the sequence based on the field ID.
                         </li>
                     </ul>
                 </div>

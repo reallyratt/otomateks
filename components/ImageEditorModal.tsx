@@ -50,10 +50,10 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
     const handleAddRect = () => {
         const newRect: Rect = {
             id: nextRectId,
-            x: 10,
-            y: 10,
+            x: 20,
+            y: 20,
             width: 200,
-            height: 50
+            height: 100
         };
         setSlides(prevSlides =>
             prevSlides.map(slide =>
@@ -66,10 +66,20 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
     };
 
     const handleAddSlide = () => {
-        const newSlide: Slide = { id: nextSlideId, rects: [] };
+        // Automatically add a default rect to the new slide so it isn't empty (and ignored)
+        const newRect: Rect = {
+            id: nextRectId,
+            x: 20,
+            y: 20,
+            width: 200,
+            height: 100
+        };
+        
+        const newSlide: Slide = { id: nextSlideId, rects: [newRect] };
         setSlides(prev => [...prev, newSlide]);
         setActiveSlideId(nextSlideId);
         setNextSlideId(prev => prev + 1);
+        setNextRectId(prev => prev + 1);
     };
 
     const handleSwitchSlide = (id: number) => {
@@ -183,14 +193,15 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         const scaleY = naturalHeight / displayedHeight;
 
         const newFiles: File[] = [];
-        const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || `image_crop_${Date.now()}`;
+        // Ensure robust original name extraction
+        const lastDotIndex = file.name.lastIndexOf('.');
+        const originalName = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
 
+        // Iterate through all slides. The order in array corresponds to creation order.
         for (const [index, slide] of slides.entries()) {
             if (slide.rects.length === 0) continue;
 
-            // Use creation order (index) so that Crop 1 is top, Crop 2 is below, etc.
-            // Do not sort by Y position.
-            const sortedRects = [...slide.rects];
+            const sortedRects = [...slide.rects]; // Use creation order
 
             let totalHeight = 0;
             let maxWidth = 0;
@@ -239,9 +250,9 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
     const activeSlideRects = slides.find(s => s.id === activeSlideId)?.rects || [];
 
     return (
-        <div className="flex flex-col h-[75vh]">
+        <div className="flex flex-col h-[80vh] sm:h-[85vh]">
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-t-lg">
-                <p className="text-sm text-[var(--text-secondary)]">Draw crop boxes for the active slide.</p>
+                <p className="text-sm text-[var(--text-secondary)]">Draw crop boxes for the active slide. Content will be stitched top-to-bottom.</p>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleAddRect}
@@ -252,13 +263,13 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                 </div>
             </div>
 
-            <div className="flex-grow p-4 overflow-auto bg-[var(--bg-primary)] relative flex items-center justify-center">
-                <div ref={containerRef} className="relative inline-block" style={{ touchAction: 'none' }}>
+            <div className="flex-grow p-4 overflow-hidden bg-[var(--bg-primary)] relative flex items-center justify-center">
+                <div ref={containerRef} className="relative inline-block shadow-2xl" style={{ touchAction: 'none' }}>
                     <img
                         ref={imageRef}
                         src={imageUrl}
                         alt="Edit preview"
-                        className="max-w-full max-h-full block select-none pointer-events-none"
+                        className="max-w-full max-h-[calc(80vh-8rem)] object-contain block select-none pointer-events-none"
                     />
                     {activeSlideRects.map((rect, index) => (
                         <div
@@ -273,7 +284,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                                 zIndex: 10 + index
                             }}
                         >
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--accent-color-500)] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--accent-color-500)] text-white text-xs font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
                                 {index + 1}
                             </div>
                             <button 
@@ -294,7 +305,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
 
             <div className="flex-shrink-0 flex flex-col gap-3 p-4 border-t border-[var(--border-secondary)] bg-[var(--bg-primary)] rounded-b-lg">
                  <div className="flex items-center gap-2">
-                    <div className="flex-grow flex items-center gap-2 overflow-x-auto py-3">
+                    <div className="flex-grow flex items-center gap-2 overflow-x-auto py-3 hide-scrollbar">
                         {slides.map((slide, index) => (
                             <button
                                 key={slide.id}

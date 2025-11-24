@@ -30,6 +30,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     onFileEdit
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewFileName, setPreviewFileName] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -71,6 +73,19 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             }
         }
     }, [multiple, onFileSelect]);
+    
+    const handlePreview = (file: File) => {
+        if (!isImage) return;
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        setPreviewFileName(file.name);
+    };
+    
+    const closePreview = () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        setPreviewFileName(null);
+    };
 
     const fileTypeDescription = (accept: string) => {
         if (accept.includes('.docx')) return 'DOCX file';
@@ -108,7 +123,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     <ul className="space-y-1">
                         {files.map(file => (
                             <li key={file.name} className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-md text-sm group">
-                                <span className="text-[var(--text-primary)] truncate pr-2">{file.name}</span>
+                                <button 
+                                    onClick={() => handlePreview(file)}
+                                    className={`text-[var(--text-primary)] truncate pr-2 text-left ${isImage ? 'hover:text-[var(--accent-color-400)] hover:underline cursor-pointer' : ''}`}
+                                    title={isImage ? "Click to preview" : file.name}
+                                >
+                                    {file.name}
+                                </button>
                                 <div className="flex items-center gap-1">
                                      {isImage && onFileEdit && (
                                         <button
@@ -148,6 +169,30 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+            
+            {/* Image Preview Modal */}
+            {previewUrl && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]"
+                    onClick={closePreview}
+                >
+                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+                         <button 
+                            onClick={closePreview}
+                            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition z-50 bg-black/50 rounded-full"
+                         >
+                            <XIcon className="w-8 h-8" />
+                         </button>
+                         <img 
+                            src={previewUrl} 
+                            alt="Preview" 
+                            className="max-w-[95vw] max-h-[95dvh] object-contain rounded-lg shadow-2xl"
+                            onClick={(e) => e.stopPropagation()} 
+                        />
+                         <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium bg-black/50 px-3 py-1 rounded-full">{previewFileName}</p>
+                    </div>
                 </div>
             )}
         </div>

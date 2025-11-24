@@ -14,6 +14,12 @@ const NS_PRESENTATIONML = 'http://purl.oclc.org/ooxml/presentationml/main';
 const NS_DRAWINGML = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const NS_RELATIONSHIPS_OFFICE_DOC = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
+interface EndingStyle {
+    text: string;
+    bold?: boolean;
+    italic?: boolean;
+}
+
 /**
  * Converts a base64 data URL into a Uint8Array.
  */
@@ -70,25 +76,6 @@ const chunkText = (text: string | undefined, maxLength: number): string[] => {
     return chunks;
 };
 
-/**
- * Chunks a main text and intelligently appends an ending.
- */
-const chunkTextWithEnding = (text: string | undefined, ending: string, maxLength: number): string[] => {
-    if (!text || text.trim() === '') {
-        return chunkText(ending.trim(), maxLength);
-    }
-    const mainChunks = chunkText(text, maxLength);
-    if (mainChunks.length === 0) {
-        return chunkText(ending.trim(), maxLength);
-    }
-    const lastChunk = mainChunks[mainChunks.length - 1];
-    if ((lastChunk + ending).length <= maxLength) {
-        mainChunks[mainChunks.length - 1] = lastChunk + ending;
-    } else {
-        mainChunks.push(ending.trim());
-    }
-    return mainChunks;
-};
 
 const getNextIdFactory = (prefix: string, regex: RegExp) => (doc: any, isZip = false): number => {
     let maxId = 0;
@@ -148,21 +135,21 @@ const getDirectChildByLocalName = (parent: Element, localName: string): Element 
     return null;
 };
 
-const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: keyof PresentationData | null; shape: Element | null } => {
-    const textNodes = getElementsByLocalName(slideXmlDoc, 't');
-    for (const node of textNodes) {
-        if (node.textContent) {
-            const match = node.textContent.match(/{{([a-zA-Z0-9]+Images)}}/);
-            if (match) {
-                const key = match[1] as keyof PresentationData;
-                let parent = node.parentElement;
-                while (parent) {
-                    if (parent.localName === 'sp') {
-                        return { key, shape: parent };
-                    }
-                    parent = parent.parentElement;
-                }
-            }
+// Update: find placeholder that starts with C (Image), allow whitespace and split text
+const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: string | null; shape: Element | null } => {
+    const shapes = getElementsByLocalName(slideXmlDoc, 'sp');
+    for (const shape of shapes) {
+        const textNodes = getElementsByLocalName(shape, 't');
+        let fullText = '';
+        for (const node of textNodes) {
+             fullText += node.textContent || '';
+        }
+        
+        // Relaxed regex to handle whitespace and potential splits
+        const match = fullText.match(/{{\s*(C[0-9]+)\s*}}/);
+        if (match) {
+            const key = match[1];
+            return { key, shape };
         }
     }
     return { key: null, shape: null };
@@ -211,8 +198,6 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
     const blipFill = doc.createElementNS(NS_DRAWINGML, 'a:blipFill');
     const blip = doc.createElementNS(NS_DRAWINGML, 'a:blip');
     
-    // Explicitly use setAttribute for r:embed to match typical PPT expectation, 
-    // avoiding potential serializer issues with NS prefix resolution on some browsers
     blip.setAttribute('r:embed', imageRId);
     blipFill.appendChild(blip);
     
@@ -238,8 +223,8 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
                 if (imageWidth > 0 && imageHeight > 0) {
                     const imageAspect = imageWidth / imageHeight;
                     
-                    if (Math.abs(shapeAspect - imageAspect) > 0.01) { // Ratios are different
-                        if (imageAspect > shapeAspect) { // Image is wider, letterbox vertically
+                    if (Math.abs(shapeAspect - imageAspect) > 0.01) { 
+                        if (imageAspect > shapeAspect) { 
                             const newImageHeight = shapeWidth / imageAspect;
                             const margin = (shapeHeight - newImageHeight) / 2;
                             const marginPercent = Math.round((margin / shapeHeight) * 100000);
@@ -247,7 +232,7 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
                                 fillRect.setAttribute('t', String(marginPercent));
                                 fillRect.setAttribute('b', String(marginPercent));
                             }
-                        } else { // Image is taller, pillarbox horizontally
+                        } else { 
                             const newImageWidth = shapeHeight * imageAspect;
                             const margin = (shapeWidth - newImageWidth) / 2;
                             const marginPercent = Math.round((margin / shapeWidth) * 100000);
@@ -267,8 +252,6 @@ const modifyShapeForImage = async (shapeElement: Element, imageRId: string, imag
     stretch.appendChild(fillRect);
     blipFill.appendChild(stretch);
 
-    // CRITICAL: Insert blipFill at the correct position in spPr (Schema: xfrm?, geometry?, fill?, ln?, effectLst?...)
-    // Adding it after 'ln' causes PPT to consider the file corrupt or ignore the fill.
     const successors = ['ln', 'effectLst', 'scene3d', 'sp3d', 'extLst'];
     let nextSibling = null;
     for (const name of successors) {
@@ -303,9 +286,6 @@ const addImageToPackage = async (zip: any, slideRelsXmlDoc: XMLDocument, content
     const newRel = slideRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
     newRel.setAttribute('Id', newRelId);
     newRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
-    // Relationship target is relative to the slide file (ppt/slides/slideX.xml)
-    // Image is in ppt/media/
-    // So path is ../media/imageX.ext
     newRel.setAttribute('Target', `../media/${imageFileName}`);
     slideRelsXmlDoc.querySelector('Relationships')?.appendChild(newRel);
 
@@ -316,25 +296,120 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
     const textNodes = getElementsByLocalName(slideXmlDoc, 't');
     textNodes.forEach(node => {
         if (!node.textContent) return;
-        node.textContent = node.textContent.replace(/{{([a-zA-Z0-9]+)}}/g, (match, keyName: keyof PresentationData) => {
-            if (keyName === ignoredKey || keyName.endsWith('Images')) return match;
+        // Matches {{A01}}, {{B01}}, {{C01}} etc.
+        node.textContent = node.textContent.replace(/{{([a-zA-Z0-9]+)}}/g, (match, keyName: string) => {
+            if (keyName === ignoredKey || keyName.startsWith('C')) return match; // Ignore images here
             const propertyValue = data[keyName];
             return typeof propertyValue === 'string' ? propertyValue : '';
         });
     });
 };
 
+const addFormattedEnding = (doc: XMLDocument, textNode: Element, endingLines: EndingStyle[]) => {
+    let pNode = textNode.parentNode;
+    while(pNode && (pNode as Element).localName !== 'p') {
+        pNode = pNode.parentNode;
+    }
+    if (!pNode || (pNode as Element).localName !== 'p') return;
+    
+    const txBody = pNode.parentNode as Element;
+    if (!txBody) return; // Must be inside a txBody
+
+    // Clone pPr (Paragraph Properties) from the original text to maintain alignment/indentation
+    const pPr = getDirectChildByLocalName(pNode as Element, 'pPr');
+    
+    // 1. Add Spacer Paragraph (Empty Line)
+    const spacerP = doc.createElementNS(NS_DRAWINGML, 'a:p');
+    if (pPr) spacerP.appendChild(pPr.cloneNode(true));
+    // Add empty text run to ensure height
+    const spacerR = doc.createElementNS(NS_DRAWINGML, 'a:r');
+    const spacerT = doc.createElementNS(NS_DRAWINGML, 'a:t');
+    spacerT.textContent = ' '; 
+    spacerR.appendChild(spacerT);
+    spacerP.appendChild(spacerR);
+    txBody.appendChild(spacerP);
+
+    // 2. Add Ending Lines
+    endingLines.forEach(line => {
+        const lineP = doc.createElementNS(NS_DRAWINGML, 'a:p');
+        if (pPr) lineP.appendChild(pPr.cloneNode(true));
+        
+        const r = doc.createElementNS(NS_DRAWINGML, 'a:r');
+        
+        // Handle Style (Bold/Italic)
+        // We try to copy existing run properties from the source text node's parent <a:r> 
+        // to keep font size/family, but override bold/italic.
+        const rPr = doc.createElementNS(NS_DRAWINGML, 'a:rPr');
+        const sourceR = textNode.parentNode as Element;
+        const sourceRPr = getDirectChildByLocalName(sourceR, 'rPr');
+        
+        let targetRPr: Element;
+
+        if (sourceRPr) {
+             targetRPr = sourceRPr.cloneNode(true) as Element;
+             targetRPr.removeAttribute('dirty'); // Clean dirty flag
+             
+             if (line.bold) targetRPr.setAttribute('b', '1'); 
+             else targetRPr.removeAttribute('b');
+             
+             if (line.italic) targetRPr.setAttribute('i', '1'); 
+             else targetRPr.removeAttribute('i');
+        } else {
+             targetRPr = rPr;
+             if (line.bold) targetRPr.setAttribute('b', '1');
+             if (line.italic) targetRPr.setAttribute('i', '1');
+        }
+        r.appendChild(targetRPr);
+
+        const t = doc.createElementNS(NS_DRAWINGML, 'a:t');
+        t.textContent = line.text;
+        r.appendChild(t);
+        lineP.appendChild(r);
+        txBody.appendChild(lineP);
+    });
+}
+
 export const processTemplate = async (data: PresentationData, templateFile: File, language: Language) => {
-    const endings = {
+    const endings: Record<Language, Record<number, EndingStyle[]>> = {
         indonesia: {
-            bacaan: '\n\nL: Demikianlah sabda Tuhan...\nU: Syukur kepada Allah',
-            injil: '\n\nI: Demikianlah Sabda Tuhan...\nU: Terpujilah Kristus',
-            kolekta: '\n\nU: Amin',
-            doaUmatImam: '\n\nU: Amin',
-            doaSesudahKomuni: '\n\nU: Amin',
-            doaAtasPersembahan: '\n\nU: Amin',
+            1: [{ text: 'U: Amin', bold: true, italic: true }],
+            2: [
+                { text: 'Demikianlah sabda Tuhan...', bold: false, italic: false },
+                { text: 'U: Syukur kepada Allah', bold: true, italic: true }
+            ],
+            3: [],
+            4: [
+                 { text: 'Demikianlah Sabda Tuhan...', bold: false, italic: false },
+                 { text: 'U: Terpujilah Kristus', bold: true, italic: true }
+            ],
+            5: []
         },
-        jawa: { /* ... */ }
+        jawa: {
+            1: [{ text: 'U: Amin', bold: true, italic: true }],
+            2: [],
+            3: [
+                { text: 'Makaten sabda Dalem Gusti...', bold: false, italic: false },
+                { text: 'U: Sembah nyuwun konjuk ing Gusti', bold: true, italic: true }
+            ],
+            4: [],
+            5: [
+                { text: 'Mangkono sabda Dalem Gusti...', bold: false, italic: false },
+                { text: 'U: Pinujia Sang Kristus', bold: true, italic: true }
+            ]
+        },
+        english: { 
+            1: [], 2: [], 3: [], 4: [], 5: [] 
+        }
+    };
+    
+    // Map specific B keys to ending types
+    const endingMap: Record<string, number> = {
+        'B05': 1,
+        'B29': 1,
+        'B33': 1,
+        'B06': language === 'indonesia' ? 2 : 3,
+        'B011': language === 'indonesia' ? 2 : 3,
+        'B014': language === 'indonesia' ? 4 : 5
     };
 
     const zip = await JSZip.loadAsync(templateFile);
@@ -369,7 +444,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         const slideRelsStr = await zip.file(slideRelsPath)?.async('string') || `<Relationships xmlns="${NS_RELATIONSHIPS}"></Relationships>`;
         const slideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
 
-        // Check for Image Placeholders first
+        // Check for Image Placeholders first (C keys)
         const { key: imageKey, shape: imageShape } = findImagePlaceholder(slideXmlDoc);
         const images = (imageKey && data[imageKey] && Array.isArray(data[imageKey])) ? data[imageKey] as string[] : [];
 
@@ -422,25 +497,23 @@ export const processTemplate = async (data: PresentationData, templateFile: File
             continue;
         }
 
-        // Check for Text Splitting
-        let splittableKey: keyof PresentationData | null = null;
+        // Check for Text Splitting (B keys)
+        let splittableKey: string | null = null;
         let chunks: string[] = [];
         const textNodes = getElementsByLocalName(slideXmlDoc, 't');
+        
         for (const node of textNodes) {
             if (node.textContent) {
-                const match = node.textContent.match(/{{([a-zA-Z0-9]+Text)}}/);
+                // Check if this text node contains a B placeholder e.g. {{B06}}
+                const match = node.textContent.match(/{{(B[0-9]+)}}/);
                 if (match) {
-                    const key = match[1] as keyof PresentationData;
+                    const key = match[1];
                     const textValue = data[key];
                     if (typeof textValue === 'string') {
-                        let ending = null;
-                        if (key === 'bacaan1Text' || key === 'bacaan2Text') ending = endings[language].bacaan;
-                        else if (key === 'bacaanInjilText') ending = endings[language].injil;
-                        else if (key === 'doaKolektaText' || key === 'doaUmat11ImamText' || key === 'doaSesudahKomuniText' || key === 'doaAtasPersembahanText') ending = endings[language].kolekta;
-
-                        if (textValue.length > MAX_TEXT_LENGTH || (ending && textValue.trim().length > 0)) {
+                        // Split if text is longer than max length
+                        if (textValue.length > MAX_TEXT_LENGTH) {
                             splittableKey = key;
-                            chunks = ending ? chunkTextWithEnding(textValue, ending, MAX_TEXT_LENGTH) : chunkText(textValue, MAX_TEXT_LENGTH);
+                            chunks = chunkText(textValue, MAX_TEXT_LENGTH);
                             break;
                         }
                     }
@@ -451,12 +524,27 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         if (splittableKey && chunks.length > 1) {
              for (let i = 0; i < chunks.length; i++) {
                 const isOriginalSlide = i === 0;
+                const isLastSlide = i === chunks.length - 1;
                 const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
 
+                // Replace other placeholders first, ignoring the splittable one
                 replaceSimplePlaceholders(currentSlideXmlDoc, data, splittableKey);
+                
+                // Manually replace the splittable key in this specific slide clone
                 getElementsByLocalName(currentSlideXmlDoc, 't').forEach(node => {
                     if (node.textContent?.includes(`{{${splittableKey}}}`)) {
                         node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[i]);
+                        
+                        // If it's the last slide, check if we need to add an ending
+                        if (isLastSlide) {
+                             const endingType = endingMap[splittableKey as string];
+                             if (endingType) {
+                                 const style = endings[language][endingType];
+                                 if (style && style.length > 0) {
+                                     addFormattedEnding(currentSlideXmlDoc, node, style);
+                                 }
+                             }
+                        }
                     }
                 });
 
@@ -490,14 +578,30 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 }
             }
         } else {
-            // Simple slide
-            if(splittableKey && chunks.length > 0) {
-                 getElementsByLocalName(slideXmlDoc, 't').forEach(node => {
-                    if (node.textContent?.includes(`{{${splittableKey}}}`)) {
-                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[0]);
-                    }
-                });
-            }
+            // Simple slide (no splitting required)
+            // But we must check if any B key here requires an ending to be appended
+            const tNodes = getElementsByLocalName(slideXmlDoc, 't');
+            tNodes.forEach(node => {
+               const match = node.textContent?.match(/{{(B[0-9]+)}}/);
+               if (match) {
+                   const key = match[1];
+                   const val = data[key];
+                   if (typeof val === 'string') {
+                       // Replace the text
+                       node.textContent = node.textContent ? node.textContent.replace(match[0], val) : '';
+                       
+                       // Check for ending
+                       const endingType = endingMap[key];
+                       if (endingType) {
+                           const style = endings[language][endingType];
+                           if (style && style.length > 0) {
+                               addFormattedEnding(slideXmlDoc, node, style);
+                           }
+                       }
+                   }
+               }
+            });
+
             replaceSimplePlaceholders(slideXmlDoc, data, splittableKey);
             zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
             newSlideIdNodes.push(sldId.cloneNode(true));

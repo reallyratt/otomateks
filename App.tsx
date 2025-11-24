@@ -17,118 +17,129 @@ import { ImageEditorModal } from './components/ImageEditorModal';
 
 type InputType = 'text' | 'image' | 'multi-image';
 type FormField = {
-    key: string;
     label: string;
+    titleKey: string;
+    textKey?: string;
+    imageKey?: string;
     types: InputType[];
     optional?: boolean;
+    section?: HarianSections;
 };
 
+// Updated Form Config: Fixed keys for Komuni 3 (A32) and Penutup (A34) to match standard numbering
 const formConfig: FormField[] = [
-    { key: 'laguPembuka', label: 'Lagu Pembuka', types: ['text', 'multi-image'] },
-    { key: 'tuhanKasihanilahKami1', label: 'Tuhan Kasihanilah Kami I', types: ['text'] },
-    { key: 'tuhanKasihanilahKami2', label: 'Tuhan Kasihanilah Kami II', types: ['text'] },
-    { key: 'tuhanKasihanilahKami3', label: 'Tuhan Kasihanilah Kami III', types: ['text'] },
-    { key: 'doaKolekta', label: 'Doa Kolekta', types: ['text'] },
-    { key: 'bacaan1', label: 'Bacaan I', types: ['text'] },
-    { key: 'mazmurTanggapanRefren', label: 'Mazmur Tanggapan (Refren)', types: ['text', 'multi-image'] },
-    { key: 'mazmurTanggapanAyat1', label: 'Mazmur Tanggapan (Ayat I)', types: ['text', 'multi-image'] },
-    { key: 'mazmurTanggapanAyat2', label: 'Mazmur Tanggapan (Ayat II)', types: ['text', 'multi-image'] },
-    { key: 'mazmurTanggapanAyat3', label: 'Mazmur Tanggapan (Ayat III)', types: ['text', 'multi-image'], optional: true },
-    { key: 'bacaan2', label: 'Bacaan II', types: ['text'] },
-    { key: 'baitPengantarInjilRefren', label: 'Bait Pengantar Injil (Refren)', types: ['multi-image'] },
-    { key: 'baitPengantarInjilAyat', label: 'Bait Pengantar Injil (Ayat)', types: ['text', 'multi-image'] },
-    { key: 'bacaanInjil', label: 'Bacaan Injil', types: ['text'] },
-    { key: 'doaUmat1Imam', label: 'Doa Umat I (Imam)', types: ['text'] },
-    { key: 'doaUmat2Lektor', label: 'Doa Umat II (Lektor)', types: ['text'] },
-    { key: 'doaUmat3Lektor', label: 'Doa Umat III (Lektor)', types: ['text'] },
-    { key: 'doaUmat4Lektor', label: 'Doa Umat IV (Lektor)', types: ['text'] },
-    { key: 'doaUmat5Lektor', label: 'Doa Umat V (Lektor)', types: ['text'] },
-    { key: 'doaUmat6Lektor', label: 'Doa Umat VI (Lektor)', types: ['text'] },
-    { key: 'doaUmat7Lektor', label: 'Doa Umat VII (Lektor)', types: ['text'] },
-    { key: 'doaUmat8Lektor', label: 'Doa Umat VIII (Lektor)', types: ['text'], optional: true },
-    { key: 'doaUmat9Lektor', label: 'Doa Umat IX (Lektor)', types: ['text'], optional: true },
-    { key: 'doaUmat10Lektor', label: 'Doa Umat X (Lektor)', types: ['text'], optional: true },
-    { key: 'doaUmat11Imam', label: 'Doa Umat XI (Imam)', types: ['text'] },
-    { key: 'doaUmatJawabanUmat', label: 'Doa Umat (Jawaban Umat)', types: ['text'] },
-    { key: 'laguPersembahan', label: 'Lagu Persembahan', types: ['text', 'multi-image'] },
-    { key: 'doaAtasPersembahan', label: 'Doa Atas Persembahan', types: ['text'] },
-    { key: 'laguKomuni', label: 'Lagu Komuni', types: ['text', 'multi-image'] },
-    { key: 'laguKomuni2', label: 'Lagu Komuni II', types: ['text', 'multi-image'], optional: true },
-    { key: 'laguKomuni3', label: 'Lagu Komuni III', types: ['text', 'multi-image'], optional: true },
-    { key: 'doaSesudahKomuni', label: 'Doa Sesudah Komuni', types: ['text'] },
-    { key: 'laguPenutup', label: 'Lagu Penutup', types: ['text', 'multi-image'] },
+    { label: 'Lagu Pembuka', titleKey: 'A01', textKey: 'B01', imageKey: 'C01', types: ['text', 'multi-image'], section: 'showLaguPembuka' },
+    { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    { label: 'Doa Kolekta', titleKey: 'A05', textKey: 'B05', types: ['text'], section: 'showDoaKolekta' },
+    { label: 'Bacaan I', titleKey: 'A06', textKey: 'B06', types: ['text'] },
+    { label: 'Mazmur Tanggapan (Refren)', titleKey: 'A07', textKey: 'B07', imageKey: 'C07', types: ['text', 'multi-image'] },
+    { label: 'Mazmur Tanggapan (Ayat I)', titleKey: 'A08', textKey: 'B08', imageKey: 'C08', types: ['text', 'multi-image'] },
+    { label: 'Mazmur Tanggapan (Ayat II)', titleKey: 'A09', textKey: 'B09', imageKey: 'C09', types: ['text', 'multi-image'] },
+    { label: 'Mazmur Tanggapan (Ayat III)', titleKey: 'A010', textKey: 'B010', imageKey: 'C010', types: ['text', 'multi-image'], optional: true },
+    { label: 'Bacaan II', titleKey: 'A011', textKey: 'B011', types: ['text'], section: 'showBacaan2' },
+    { label: 'Bait Pengantar Injil (Refren)', titleKey: 'A012', imageKey: 'C012', types: ['multi-image'] }, 
+    { label: 'Bait Pengantar Injil (Ayat)', titleKey: 'A013', textKey: 'B013', imageKey: 'C013', types: ['text', 'multi-image'] },
+    { label: 'Bacaan Injil', titleKey: 'A014', textKey: 'B014', types: ['text'] },
+    
+    // Doa Umat Section - Roman Numerals for Lektors
+    { label: 'Doa Umat: Imam (Pembuka)', titleKey: 'A015', textKey: 'B015', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor I', titleKey: 'A016', textKey: 'B016', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor II', titleKey: 'A017', textKey: 'B017', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor III', titleKey: 'A018', textKey: 'B018', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor IV', titleKey: 'A019', textKey: 'B019', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor V', titleKey: 'A020', textKey: 'B020', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor VI', titleKey: 'A021', textKey: 'B021', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor VII', titleKey: 'A022', textKey: 'B022', types: ['text'], optional: true, section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor VIII', titleKey: 'A023', textKey: 'B023', types: ['text'], optional: true, section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor IX', titleKey: 'A024', textKey: 'B024', types: ['text'], optional: true, section: 'showDoaUmat' },
+    { label: 'Doa Umat: Lektor X', titleKey: 'A025', textKey: 'B025', types: ['text'], optional: true, section: 'showDoaUmat' },
+    { label: 'Doa Umat: Imam (Penutup)', titleKey: 'A026', textKey: 'B026', types: ['text'], section: 'showDoaUmat' },
+    { label: 'Doa Umat: Jawaban Umat', titleKey: 'A27', textKey: 'B27', types: ['text'], section: 'showDoaUmat' },
+
+    { label: 'Lagu Persembahan', titleKey: 'A28', textKey: 'B28', imageKey: 'C28', types: ['text', 'multi-image'], section: 'showLaguPersembahan' },
+    { label: 'Doa Atas Persembahan', titleKey: 'A29', textKey: 'B29', types: ['text'] },
+    { label: 'Lagu Komuni I', titleKey: 'A30', textKey: 'B30', imageKey: 'C30', types: ['text', 'multi-image'], section: 'showLaguKomuni' },
+    { label: 'Lagu Komuni II', titleKey: 'A31', textKey: 'B31', imageKey: 'C31', types: ['text', 'multi-image'], optional: true, section: 'showLaguKomuni' },
+    // Reverted keys to 32/34 to align with A30/A31 pattern, resolving title display issues
+    { label: 'Lagu Komuni III', titleKey: 'A32', textKey: 'B32', imageKey: 'C32', types: ['text', 'multi-image'], optional: true, section: 'showLaguKomuni' },
+    { label: 'Doa Sesudah Komuni', titleKey: 'A33', textKey: 'B33', types: ['text'], section: 'showDoaSesudahKomuni' },
+    { label: 'Lagu Penutup', titleKey: 'A34', textKey: 'B34', imageKey: 'C34', types: ['text', 'multi-image'], section: 'showLaguPenutup' },
 ];
 
 const defaultTitlesIndonesia: PresentationData = {
-    laguPembukaTitle: '(umat berdiri) NYANYIAN PERARAKAN MASUK',
-    tuhanKasihanilahKami1Title: 'TUHAN KASIHANILAH KAMI',
-    tuhanKasihanilahKami2Title: 'TUHAN KASIHANILAH KAMI',
-    tuhanKasihanilahKami3Title: 'TUHAN KASIHANILAH KAMI',
-    doaKolektaTitle: '(umat berdiri) DOA KOLEKTA',
-    bacaan1Title: '(umat duduk) BACAAN I | (Sumber)',
-    mazmurTanggapanRefrenTitle: '(umat duduk) MAZMUR TANGGAPAN',
-    mazmurTanggapanAyat1Title: '(umat duduk) MAZMUR TANGGAPAN',
-    mazmurTanggapanAyat2Title: '(umat duduk) MAZMUR TANGGAPAN',
-    mazmurTanggapanAyat3Title: '(umat duduk) MAZMUR TANGGAPAN',
-    bacaan2Title: '(umat duduk) BACAAN II | (Sumber)',
-    baitPengantarInjilRefrenTitle: '(umat berdiri) BAIT PENGANTAR INJIL',
-    baitPengantarInjilAyatTitle: '(umat berdiri) BAIT PENGANTAR INJIL',
-    bacaanInjilTitle: '(umat duduk) BACAAN INJIL | (Sumber)',
-    doaUmat1ImamTitle: '(umat berdiri) DOA UMAT',
-    doaUmat2LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat3LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat4LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat5LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat6LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat7LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat8LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat9LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat10LektorTitle: '(umat berdiri) DOA UMAT',
-    doaUmat11ImamTitle: '(umat berdiri) DOA UMAT',
-    doaUmatJawabanUmatTitle: '(umat berdiri) DOA UMAT',
-    laguPersembahanTitle: '(umat duduk) NYANYIAN PERSEMBAHAN',
-    doaAtasPersembahanTitle: '(umat berdiri) DOA ATAS PERSEMBAHAN',
-    laguKomuniTitle: '(umat duduk) MADAH PUJIAN',
-    laguKomuni2Title: '(umat duduk) MADAH PUJIAN',
-    laguKomuni3Title: '(umat duduk) MADAH PUJIAN',
-    doaSesudahKomuniTitle: '(umat berdiri) DOA SESUDAH KOMUNI',
-    laguPenutupTitle: '(umat berdiri) NYANYIAN PERARAKAN KELUAR',
+    A01: '(umat berdiri) NYANYIAN PERARAKAN MASUK',
+    A02: 'TUHAN KASIHANILAH KAMI',
+    A03: 'TUHAN KASIHANILAH KAMI',
+    A04: 'TUHAN KASIHANILAH KAMI',
+    A05: '(umat berdiri) DOA KOLEKTA',
+    A06: '(umat duduk) BACAAN I | (Sumber)',
+    A07: '(umat duduk) MAZMUR TANGGAPAN',
+    A08: '(umat duduk) MAZMUR TANGGAPAN',
+    A09: '(umat duduk) MAZMUR TANGGAPAN',
+    A010: '(umat duduk) MAZMUR TANGGAPAN',
+    A011: '(umat duduk) BACAAN II | (Sumber)',
+    A012: '(umat berdiri) BAIT PENGANTAR INJIL',
+    A013: '(umat berdiri) BAIT PENGANTAR INJIL',
+    A014: '(umat duduk) BACAAN INJIL | (Sumber)',
+    A015: '(umat berdiri) DOA UMAT',
+    A016: '(umat berdiri) DOA UMAT',
+    A017: '(umat berdiri) DOA UMAT',
+    A018: '(umat berdiri) DOA UMAT',
+    A019: '(umat berdiri) DOA UMAT',
+    A020: '(umat berdiri) DOA UMAT',
+    A021: '(umat berdiri) DOA UMAT',
+    A022: '(umat berdiri) DOA UMAT',
+    A023: '(umat berdiri) DOA UMAT',
+    A024: '(umat berdiri) DOA UMAT',
+    A025: '(umat berdiri) DOA UMAT',
+    A026: '(umat berdiri) DOA UMAT',
+    A27: '(umat berdiri) DOA UMAT',
+    A28: '(umat duduk) NYANYIAN PERSEMBAHAN',
+    A29: '(umat berdiri) DOA ATAS PERSEMBAHAN',
+    A30: '(umat duduk) MADAH PUJIAN',
+    A31: '(umat duduk) MADAH PUJIAN',
+    A32: '(umat duduk) MADAH PUJIAN',
+    A33: '(umat berdiri) DOA SESUDAH KOMUNI',
+    A34: '(umat berdiri) NYANYIAN PERARAKAN KELUAR',
 };
 
 const defaultTitlesJawa: PresentationData = {
-    laguPembukaTitle: '(umat jumeneng) KIDUNG ARAK-ARAKAN MLEBET',
-    tuhanKasihanilahKami1Title: 'GUSTI NYUWUN KAWELASAN',
-    tuhanKasihanilahKami2Title: 'GUSTI NYUWUN KAWELASAN',
-    tuhanKasihanilahKami3Title: 'GUSTI NYUWUN KAWELASAN',
-    doaKolektaTitle: '(umat jumeneng) SEMBAHYANGAN KOLEKTA',
-    bacaan1Title: '(umat lenggah) WAOSAN I | (Sumber)',
-    mazmurTanggapanRefrenTitle: '(umat lenggah) KIDUNG PANGLIMBANG',
-    mazmurTanggapanAyat1Title: '(umat lenggah) KIDUNG PANGLIMBANG',
-    mazmurTanggapanAyat2Title: '(umat lenggah) KIDUNG PANGLIMBANG',
-    mazmurTanggapanAyat3Title: '(umat lenggah) KIDUNG PANGLIMBANG',
-    bacaan2Title: '(umat lenggah) WAOSAN II | (Sumber)',
-    baitPengantarInjilRefrenTitle: '(umat jumeneng) KIDUNG CECELA',
-    baitPengantarInjilAyatTitle: '(umat jumeneng) KIDUNG CECELA',
-    bacaanInjilTitle: '(umat jumeneng) INJIL SUCI | (Sumber)',
-    doaUmat1ImamTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat2LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat3LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat4LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat5LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat6LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat7LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat8LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat9LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat10LektorTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmat11ImamTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    doaUmatJawabanUmatTitle: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    laguPersembahanTitle: '(umat lenggah) KIDUNG CECAWIS PISUNGSUNG',
-    doaAtasPersembahanTitle: '(umat jumeneng) SEMBAHYANGAN CECAWIS PISUNGSUNG',
-    laguKomuniTitle: '(umat lenggah) KIDUNG PUJIAN',
-    laguKomuni2Title: '(umat lenggah) KIDUNG PUJIAN',
-    laguKomuni3Title: '(umat lenggah) KIDUNG PUJIAN',
-    doaSesudahKomuniTitle: '(umat jumeneng) SEMBAHYANGAN BAKDA KOMUNI',
-    laguPenutupTitle: '(umat jumeneng) KIDUNG PANUTUP',
+    A01: '(umat jumeneng) KIDUNG ARAK-ARAKAN MLEBET',
+    A02: 'GUSTI NYUWUN KAWELASAN',
+    A03: 'GUSTI NYUWUN KAWELASAN',
+    A04: 'GUSTI NYUWUN KAWELASAN',
+    A05: '(umat jumeneng) SEMBAHYANGAN KOLEKTA',
+    A06: '(umat lenggah) WAOSAN I | (Sumber)',
+    A07: '(umat lenggah) KIDUNG PANGLIMBANG',
+    A08: '(umat lenggah) KIDUNG PANGLIMBANG',
+    A09: '(umat lenggah) KIDUNG PANGLIMBANG',
+    A010: '(umat lenggah) KIDUNG PANGLIMBANG',
+    A011: '(umat lenggah) WAOSAN II | (Sumber)',
+    A012: '(umat jumeneng) KIDUNG CECELA',
+    A013: '(umat jumeneng) KIDUNG CECELA',
+    A014: '(umat jumeneng) INJIL SUCI | (Sumber)',
+    A015: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A016: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A017: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A018: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A019: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A020: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A021: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A022: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A023: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A024: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A025: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A026: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A27: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A28: '(umat lenggah) KIDUNG CECAWIS PISUNGSUNG',
+    A29: '(umat jumeneng) SEMBAHYANGAN CECAWIS PISUNGSUNG',
+    A30: '(umat lenggah) KIDUNG PUJIAN',
+    A31: '(umat lenggah) KIDUNG PUJIAN',
+    A32: '(umat lenggah) KIDUNG PUJIAN',
+    A33: '(umat jumeneng) SEMBAHYANGAN BAKDA KOMUNI',
+    A34: '(umat jumeneng) KIDUNG PANUTUP',
 };
 
 
@@ -170,7 +181,7 @@ const invertImageBase64 = (base64String: string): Promise<string> => {
 
 
 const StepContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
-    <div className="animate-[fadeIn_0.5s_ease-in-out]">{children}</div>
+    <div className="animate-[fadeIn_0.5s_ease-in-out] p-1">{children}</div>
 );
 
 type HarianSections = 'showLaguPembuka' | 'showTuhanKasihanilahKami' | 'showDoaKolekta' | 'showBacaan2' | 'showDoaUmat' | 'showLaguPersembahan' | 'showLaguKomuni' | 'showDoaSesudahKomuni' | 'showLaguPenutup';
@@ -286,7 +297,6 @@ const App: React.FC = () => {
         const langText = massLanguage === 'indonesia' ? 'Bahasa Indonesia' : 'Bahasa Jawa';
         const newTitle = `[Tahun C] ${typeText} - ${langText} - Minggu Biasa I (27 04 07)`;
         
-        // Only reset fields, keep the generated title
         setPresentationData(prev => ({ ...newDefaults, presentationTitle: prev.presentationTitle || newTitle }));
 
     }, [massLanguage, massType]);
@@ -305,7 +315,7 @@ const App: React.FC = () => {
             for (const fieldKey of Object.keys(originalBase64Cache)) {
                 const files = uploadedFiles[fieldKey] || [];
                 if (files.length === 0) {
-                    dataUpdates[`${fieldKey}Images`] = [];
+                    dataUpdates[fieldKey] = []; // Directly use the C key
                     continue;
                 }
 
@@ -318,7 +328,7 @@ const App: React.FC = () => {
                     return originalBase64;
                 }));
 
-                dataUpdates[`${fieldKey}Images`] = base64Array.filter(Boolean) as string[];
+                dataUpdates[fieldKey] = base64Array.filter(Boolean) as string[];
             }
 
             setPresentationData(prev => {
@@ -353,20 +363,16 @@ const App: React.FC = () => {
 
     const handleFileChange = async (key: string, files: File | File[]) => {
         const fileArray = Array.isArray(files) ? files : [files];
-        setUploadedFiles(prev => ({ ...prev, [key]: fileArray }));
-
-        setInvertedImages(prev => {
-            const newState = { ...prev };
-            delete newState[key];
-            return newState;
+        
+        setUploadedFiles(prev => {
+            const existingFiles = prev[key] || [];
+            const newUniqueFiles = fileArray.filter(newFile => 
+                !existingFiles.some(existing => existing.name === newFile.name)
+            );
+            return { ...prev, [key]: [...existingFiles, ...newUniqueFiles] };
         });
 
         if (fileArray.length === 0) {
-             setOriginalBase64Cache(prev => {
-                const newCache = {...prev};
-                delete newCache[key];
-                return newCache;
-             });
              return;
         }
 
@@ -375,7 +381,11 @@ const App: React.FC = () => {
             const base64 = await fileToBase64(file);
             newCacheForKey[file.name] = base64;
         }));
-        setOriginalBase64Cache(prev => ({ ...prev, [key]: newCacheForKey }));
+
+        setOriginalBase64Cache(prev => ({ 
+            ...prev, 
+            [key]: { ...(prev[key] || {}), ...newCacheForKey } 
+        }));
     };
 
     const handleFileRemove = (key: string, fileNameToRemove: string) => {
@@ -387,7 +397,10 @@ const App: React.FC = () => {
         setOriginalBase64Cache(prev => {
             const newCache = { ...prev };
             if (newCache[key]) {
-                delete newCache[key][fileNameToRemove];
+                const newKeyCache = { ...newCache[key] };
+                delete newKeyCache[fileNameToRemove];
+                newCache[key] = newKeyCache;
+                
                 if (Object.keys(newCache[key]).length === 0) {
                     delete newCache[key];
                 }
@@ -440,26 +453,32 @@ const App: React.FC = () => {
         if (!editingFile) return;
         const { key } = editingFile;
 
-        // 1. Remove original file and add new files to uploadedFiles
         setUploadedFiles(prev => {
-            const updatedFilesForKey = (prev[key] || []).filter(f => f.name !== originalFile.name);
-            updatedFilesForKey.push(...newFiles);
+            const oldList = prev[key] || [];
+            const index = oldList.findIndex(f => f.name === originalFile.name);
+            if (index === -1) return prev;
+            
+            const updatedFilesForKey = [...oldList];
+            // Replace the original file with the new files (can be multiple if slides were added)
+            updatedFilesForKey.splice(index, 1, ...newFiles);
+            
             return { ...prev, [key]: updatedFilesForKey };
         });
 
-        // 2. Update base64 cache
+        // Update base64 cache
         const newCacheForKey: { [fileName: string]: string } = {};
         await Promise.all(newFiles.map(async (file) => {
             const base64 = await fileToBase64(file);
             newCacheForKey[file.name] = base64;
         }));
+        
         setOriginalBase64Cache(prev => {
-            const updatedCache = { ...prev[key] };
+            const updatedCache = { ...(prev[key] || {}) };
             delete updatedCache[originalFile.name];
             return { ...prev, [key]: { ...updatedCache, ...newCacheForKey } };
         });
 
-        // 3. Clean up inverted state for the original file
+        // Clean up inverted state for the original file
         setInvertedImages(prev => {
             const newInverted = { ...prev };
             if (newInverted[key]) {
@@ -471,7 +490,7 @@ const App: React.FC = () => {
             return newInverted;
         });
 
-        // 4. Close modal
+        // Close modal
         setIsEditModalOpen(false);
         setEditingFile(null);
     };
@@ -721,35 +740,30 @@ const App: React.FC = () => {
                                         {formConfig
                                             .filter(field => {
                                                 if (massType !== 'harian') return true;
-                                                
-                                                if (field.key === 'laguPembuka') return harianOptionalSections.showLaguPembuka;
-                                                if (field.key.startsWith('tuhanKasihanilahKami')) return harianOptionalSections.showTuhanKasihanilahKami;
-                                                if (field.key === 'doaKolekta') return harianOptionalSections.showDoaKolekta;
-                                                if (field.key === 'bacaan2') return harianOptionalSections.showBacaan2;
-                                                if (field.key.startsWith('doaUmat')) return harianOptionalSections.showDoaUmat;
-                                                if (field.key === 'laguPersembahan') return harianOptionalSections.showLaguPersembahan;
-                                                if (field.key.startsWith('laguKomuni')) return harianOptionalSections.showLaguKomuni;
-                                                if (field.key === 'doaSesudahKomuni') return harianOptionalSections.showDoaSesudahKomuni;
-                                                if (field.key === 'laguPenutup') return harianOptionalSections.showLaguPenutup;
-
-                                                return true; // Show field if it's not in the optional list
+                                                return field.section ? harianOptionalSections[field.section] : true;
                                             })
                                             .map((field) => {
-                                                const titleKey = `${field.key}Title`;
-                                                const textKey = `${field.key}Text`;
-                                                const imagesKey = `${field.key}Images`;
+                                                const titleKey = field.titleKey;
+                                                const textKey = field.textKey;
+                                                const imageKey = field.imageKey;
+                                                const uniqueFieldId = field.titleKey; // Use titleKey as unique ID
+
                                                 const defaultMode = field.types.includes('text') ? 'text' : 'image';
-                                                const currentMode = inputModes[field.key] || defaultMode;
+                                                const currentMode = inputModes[uniqueFieldId] || defaultMode;
                                                 const isMultiImage = field.types.includes('multi-image');
 
                                                 return (
-                                                <div key={field.key} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
+                                                <div key={uniqueFieldId} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
                                                     <div className="flex justify-between items-center">
                                                         <h3 className="text-lg font-bold text-[var(--accent-color-400)]">{field.label}</h3>
                                                         {field.types.length > 1 && (
                                                             <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
-                                                                <button onClick={() => handleModeChange(field.key, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
-                                                                <button onClick={() => handleModeChange(field.key, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
+                                                                {field.types.includes('text') && (
+                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
+                                                                )}
+                                                                {(field.types.includes('image') || field.types.includes('multi-image')) && (
+                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -766,7 +780,7 @@ const App: React.FC = () => {
                                                                 className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
                                                             />
                                                         </div>
-                                                        {currentMode === 'text' ? (
+                                                        {currentMode === 'text' && textKey ? (
                                                             <div>
                                                                 <div className="flex justify-between items-center mb-1">
                                                                     <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
@@ -783,22 +797,24 @@ const App: React.FC = () => {
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
-                                                                <FileUpload
-                                                                    id={imagesKey}
-                                                                    onFileSelect={(files) => handleFileChange(field.key, files)}
-                                                                    multiple={isMultiImage}
-                                                                    accept="image/*"
-                                                                    label="Click to upload"
-                                                                    files={uploadedFiles[field.key] || []}
-                                                                    onFileRemove={(fileName) => handleFileRemove(field.key, fileName)}
-                                                                    onInvertToggle={(fileName) => handleInvertToggle(field.key, fileName)}
-                                                                    invertedFiles={invertedImages[field.key]}
-                                                                    isImage={true}
-                                                                    onFileEdit={(fileName) => handleFileEdit(field.key, fileName)}
-                                                                />
-                                                            </div>
+                                                            imageKey ? (
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
+                                                                    <FileUpload
+                                                                        id={imageKey}
+                                                                        onFileSelect={(files) => handleFileChange(imageKey, files)}
+                                                                        multiple={isMultiImage}
+                                                                        accept="image/*"
+                                                                        label="Click to upload"
+                                                                        files={uploadedFiles[imageKey] || []}
+                                                                        onFileRemove={(fileName) => handleFileRemove(imageKey, fileName)}
+                                                                        onInvertToggle={(fileName) => handleInvertToggle(imageKey, fileName)}
+                                                                        invertedFiles={invertedImages[imageKey]}
+                                                                        isImage={true}
+                                                                        onFileEdit={(fileName) => handleFileEdit(imageKey, fileName)}
+                                                                    />
+                                                                </div>
+                                                            ) : <div className="text-sm text-yellow-500">Image upload not available for this field.</div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -881,7 +897,12 @@ const App: React.FC = () => {
                 <DevlogModal />
             </Modal>
 
-            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Image Multi-Crop Editor">
+            <Modal 
+                isOpen={isEditModalOpen} 
+                onClose={() => setIsEditModalOpen(false)} 
+                title="Image Multi-Crop Editor"
+                maxWidth="max-w-6xl"
+            >
                 {editingFile && (
                     <ImageEditorModal
                         file={editingFile.file}
