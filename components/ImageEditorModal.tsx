@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CropIcon, TrashIcon, XIcon, PlusIcon } from './icons';
 
@@ -248,20 +247,20 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
 
     return (
         <div className="flex flex-col h-[80vh] sm:h-[85vh]">
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b-4 border-[#000000] bg-[#FFFFFF]">
-                <p className="text-sm font-bold uppercase bg-[#0033FF] text-[#FFFFFF] px-2 border-2 border-[#000000]">DRAW BOXES. STITCHES DOWN.</p>
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b-4 border-brutal-border bg-brutal-surface">
+                <p className="text-sm font-bold uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">DRAW BOXES. STITCHES DOWN.</p>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleAddRect}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase bg-[#FFFFFF] border-2 border-[#000000] text-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase bg-brutal-surface border-2 border-brutal-border text-brutal-text hover:bg-brutal-border hover:text-brutal-bg transition-colors"
                     >
                         <CropIcon className="w-4 h-4" /> Add Box
                     </button>
                 </div>
             </div>
 
-            <div className="flex-grow p-4 overflow-hidden bg-[#F5EAD7] relative flex items-center justify-center border-b-4 border-[#000000]">
-                <div ref={containerRef} className="relative inline-block border-4 border-[#000000] shadow-brutal bg-[#FFFFFF]" style={{ touchAction: 'none' }}>
+            <div className="flex-grow p-4 overflow-hidden bg-brutal-bg relative flex items-center justify-center border-b-4 border-brutal-border">
+                <div ref={containerRef} className="relative inline-block border-4 border-brutal-border shadow-brutal bg-brutal-surface" style={{ touchAction: 'none' }}>
                     <img
                         ref={imageRef}
                         src={imageUrl}
@@ -272,7 +271,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                         <div
                             key={rect.id}
                             onMouseDown={(e) => handleMouseDown(e, rect.id, 'move')}
-                            className="absolute border-4 border-[#0033FF] cursor-move bg-[#0033FF]/20"
+                            className="absolute border-4 border-brutal-accent cursor-move bg-brutal-accent/20"
                             style={{
                                 left: `${rect.x}px`,
                                 top: `${rect.y}px`,
@@ -281,43 +280,43 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                                 zIndex: 10 + index
                             }}
                         >
-                            <div className="absolute -top-4 -left-4 bg-[#0033FF] text-[#FFFFFF] text-xs font-black px-2 py-1 border-2 border-[#000000] pointer-events-none">
+                            <div className="absolute -top-4 -left-4 bg-brutal-accent text-brutal-white text-xs font-black px-2 py-1 border-2 border-brutal-border pointer-events-none">
                                 #{index + 1}
                             </div>
                             <button 
                                 onClick={(e) => handleDeleteRect(e, rect.id)}
-                                className="absolute -top-4 -right-4 w-6 h-6 bg-red-600 text-[#FFFFFF] border-2 border-[#000000] flex items-center justify-center hover:bg-red-800 z-20"
+                                className="absolute -top-4 -right-4 w-6 h-6 bg-red-600 text-brutal-white border-2 border-brutal-border flex items-center justify-center hover:bg-red-800 z-20"
                                 aria-label="Delete crop area"
                             >
                                 <TrashIcon className="w-3 h-3" />
                             </button>
                             <div
                                 onMouseDown={(e) => handleMouseDown(e, rect.id, 'resize-br')}
-                                className="absolute -bottom-2 -right-2 w-4 h-4 bg-[#FFFFFF] border-2 border-[#000000] cursor-se-resize z-20"
+                                className="absolute -bottom-2 -right-2 w-4 h-4 bg-brutal-surface border-2 border-brutal-border cursor-se-resize z-20"
                             />
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="flex-shrink-0 flex flex-col gap-3 p-4 bg-[#FFFFFF]">
+            <div className="flex-shrink-0 flex flex-col gap-3 p-4 bg-brutal-surface">
                  <div className="flex items-center gap-2">
                     <div className="flex-grow flex items-center gap-2 overflow-x-auto py-2 hide-scrollbar">
                         {slides.map((slide, index) => (
                             <button
                                 key={slide.id}
                                 onClick={() => handleSwitchSlide(slide.id)}
-                                className={`relative flex-shrink-0 px-4 py-2 text-sm font-bold uppercase border-2 border-[#000000] transition-all ${
+                                className={`relative flex-shrink-0 px-4 py-2 text-sm font-bold uppercase border-2 border-brutal-border transition-all ${
                                     activeSlideId === slide.id 
-                                    ? 'bg-[#000000] text-[#FFFFFF]' 
-                                    : 'bg-[#FFFFFF] text-[#000000] hover:bg-[#F5EAD7]'
+                                    ? 'bg-brutal-border text-brutal-bg' 
+                                    : 'bg-brutal-surface text-brutal-text hover:bg-brutal-bg'
                                 }`}
                             >
                                 Slide {index + 1}
                                 {slides.length > 1 && (
                                     <button 
                                         onClick={(e) => handleDeleteSlide(e, slide.id)}
-                                        className="absolute -top-3 -right-2 w-5 h-5 bg-red-500 text-[#FFFFFF] border border-[#000000] flex items-center justify-center hover:bg-red-700"
+                                        className="absolute -top-3 -right-2 w-5 h-5 bg-red-500 text-brutal-white border border-brutal-border flex items-center justify-center hover:bg-red-700"
                                         aria-label={`Delete Slide ${index + 1}`}
                                     >
                                         <XIcon className="w-3 h-3" />
@@ -328,7 +327,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                     </div>
                     <button
                         onClick={handleAddSlide}
-                        className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-[#0033FF] border-2 border-[#000000] text-[#FFFFFF] hover:bg-[#0000FF] transition-colors shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                        className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-brutal-accent border-2 border-brutal-border text-brutal-white hover:opacity-80 transition-opacity shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                         aria-label="Add New Slide"
                     >
                         <PlusIcon className="w-6 h-6" />
@@ -337,13 +336,13 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                 <div className="flex justify-end gap-3 pt-2">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-bold uppercase bg-[#FFFFFF] border-2 border-[#000000] text-[#000000] hover:bg-[#F5EAD7] transition-colors"
+                        className="px-4 py-2 text-sm font-bold uppercase bg-brutal-surface border-2 border-brutal-border text-brutal-text hover:bg-brutal-bg transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-4 py-2 text-sm font-bold uppercase bg-[#0033FF] border-2 border-[#000000] text-[#FFFFFF] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all"
+                        className="px-4 py-2 text-sm font-bold uppercase bg-brutal-accent border-2 border-brutal-border text-brutal-white shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all"
                     >
                         Save
                     </button>

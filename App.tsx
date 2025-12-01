@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Language, PresentationData, MassType } from './types';
 import { translations } from './i18n';
@@ -214,7 +213,7 @@ const App: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(1);
     
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
-    const [accentColor, setAccentColor] = useState('black');
+    const [accentColor, setAccentColor] = useState('#0033FF'); // Default Blue
     
     // Image Handling State
     const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File[] }>({});
@@ -235,6 +234,11 @@ const App: React.FC = () => {
         showLaguPenutup: false,
     });
     
+    // Update CSS Variable when accentColor changes
+    useEffect(() => {
+        document.documentElement.style.setProperty('--color-accent', accentColor);
+    }, [accentColor]);
+
     const handleHarianToggle = (section: HarianSections) => {
         setHarianOptionalSections(prev => ({
             ...prev,
@@ -533,15 +537,15 @@ const App: React.FC = () => {
     const isGenerateDisabled = !uploadedTemplate || !presentationData.presentationTitle || isLoading;
 
     return (
-        <div className="min-h-screen bg-[#F5EAD7] text-[#000000] font-sans relative overflow-hidden">
+        <div className={`min-h-screen bg-brutal-bg text-brutal-text font-sans relative overflow-hidden ${theme}`}>
             <div className="relative z-10 flex flex-col items-center p-4 sm:p-6 lg:p-8 min-h-screen overflow-y-auto hide-scrollbar">
                 <div className="w-full max-w-4xl mx-auto">
-                    <header className="flex justify-between items-start mb-8 bg-[#FFFFFF] border-4 border-[#000000] p-4 shadow-brutal">
+                    <header className="flex justify-between items-start mb-8 bg-brutal-surface border-4 border-brutal-border p-4 shadow-brutal">
                         <div className="text-left">
-                             <h1 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tighter mb-2 text-[#000000]">
+                             <h1 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tighter mb-2 text-brutal-text">
                                 Otomateks
                             </h1>
-                            <p className="text-lg font-bold bg-[#0033FF] text-[#FFFFFF] inline-block px-2 border-2 border-[#000000]">
+                            <p className="text-lg font-bold bg-brutal-accent text-brutal-white inline-block px-2 border-2 border-brutal-border">
                                 {t('appSubtitle')}
                             </p>
                         </div>
@@ -551,21 +555,21 @@ const App: React.FC = () => {
                     <main className="space-y-6">
                         {currentStep === 1 && (
                              <StepContainer>
-                                <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-8">
+                                <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-8">
                                     <div className="space-y-3">
-                                        <h3 className="text-xl font-black uppercase border-b-4 border-[#000000] inline-block text-[#000000]">
+                                        <h3 className="text-xl font-black uppercase border-b-4 border-brutal-border inline-block text-brutal-text">
                                             {t('bahasa')}
                                         </h3>
                                         <div className="flex gap-4">
                                             <button 
                                                 onClick={() => setMassLanguage('indonesia')} 
-                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-[#000000] transition-all ${massLanguage === 'indonesia' ? 'bg-[#000000] text-[#FFFFFF] shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-[#FFFFFF] text-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
+                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-brutal-border transition-all ${massLanguage === 'indonesia' ? 'bg-brutal-border text-brutal-bg shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-brutal-surface text-brutal-text shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
                                             >
                                                 INDONESIA
                                             </button>
                                             <button 
                                                 onClick={() => setMassLanguage('jawa')} 
-                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-[#000000] transition-all ${massLanguage === 'jawa' ? 'bg-[#000000] text-[#FFFFFF] shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-[#FFFFFF] text-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
+                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-brutal-border transition-all ${massLanguage === 'jawa' ? 'bg-brutal-border text-brutal-bg shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-brutal-surface text-brutal-text shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
                                             >
                                                 JAWA
                                             </button>
@@ -573,25 +577,25 @@ const App: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <h3 className="text-xl font-black uppercase border-b-4 border-[#000000] inline-block text-[#000000]">
+                                        <h3 className="text-xl font-black uppercase border-b-4 border-brutal-border inline-block text-brutal-text">
                                             {t('tipeMisa')}
                                         </h3>
                                         <div className="space-y-4">
                                             {massOptions.map((group) => (
                                                 <div key={group.category}>
-                                                    <p className="text-sm font-bold uppercase mb-2 bg-[#F5EAD7] text-[#000000] inline-block px-2 border-2 border-[#000000]">{group.category}</p>
+                                                    <p className="text-sm font-bold uppercase mb-2 bg-brutal-bg text-brutal-text inline-block px-2 border-2 border-brutal-border">{group.category}</p>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         {group.options.map((option) => (
                                                             <label 
                                                                 key={option.id}
-                                                                className={`flex items-center p-3 border-4 border-[#000000] transition-all cursor-pointer ${
+                                                                className={`flex items-center p-3 border-4 border-brutal-border transition-all cursor-pointer ${
                                                                     !option.enabled
                                                                         ? 'opacity-50 cursor-not-allowed bg-gray-200'
-                                                                        : 'hover:bg-[#0033FF]/10'
+                                                                        : 'hover:bg-brutal-accent/10'
                                                                 } ${
                                                                     massType === option.id 
-                                                                        ? 'bg-[#000000] text-[#FFFFFF]' 
-                                                                        : 'bg-[#FFFFFF] text-[#000000]'
+                                                                        ? 'bg-brutal-border text-brutal-bg' 
+                                                                        : 'bg-brutal-surface text-brutal-text'
                                                                 }`}
                                                             >
                                                                 <input
@@ -601,10 +605,10 @@ const App: React.FC = () => {
                                                                     checked={massType === option.id}
                                                                     onChange={() => setMassType(option.id as MassType)}
                                                                     disabled={!option.enabled}
-                                                                    className="w-5 h-5 accent-[#0033FF] mr-3 border-2 border-[#000000]"
+                                                                    className="w-5 h-5 accent-brutal-accent mr-3 border-2 border-brutal-border"
                                                                 />
                                                                 <span className="text-sm font-bold uppercase">{option.label}</span>
-                                                                {!option.enabled && <span className="ml-auto text-xs font-bold bg-[#0033FF] text-[#FFFFFF] border-2 border-[#000000] px-2 py-0.5">SOON</span>}
+                                                                {!option.enabled && <span className="ml-auto text-xs font-bold bg-brutal-accent text-brutal-white border-2 border-brutal-border px-2 py-0.5">SOON</span>}
                                                             </label>
                                                         ))}
                                                     </div>
@@ -614,7 +618,7 @@ const App: React.FC = () => {
                                     </div>
 
                                     <div className="flex justify-end pt-4">
-                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#0033FF] text-[#FFFFFF] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-accent text-brutal-white border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
                                             <ArrowRightIcon className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -628,15 +632,15 @@ const App: React.FC = () => {
                                     <>
                                         <DataEntryWorkflow presentationTitle={presentationData.presentationTitle || ''} />
                                         <div className="flex justify-start pt-4">
-                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-surface text-brutal-text border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
                                                 <ArrowLeftIcon className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-6">
+                                    <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-6">
                                         <div>
-                                            <label htmlFor="presentationTitle" className="block text-xl font-black uppercase mb-2 text-[#000000]">
+                                            <label htmlFor="presentationTitle" className="block text-xl font-black uppercase mb-2 text-brutal-text">
                                                 {t('namaFile')}
                                             </label>
                                             <input
@@ -645,12 +649,12 @@ const App: React.FC = () => {
                                                 name="presentationTitle"
                                                 value={presentationData.presentationTitle || ''}
                                                 onChange={handleInputChange}
-                                                className="w-full bg-[#FFFFFF] border-4 border-[#000000] p-3 font-bold focus:bg-[#F5EAD7] focus:outline-none focus:shadow-brutal-sm transition-all text-[#000000]"
+                                                className="w-full bg-brutal-surface border-4 border-brutal-border p-3 font-bold focus:bg-brutal-bg focus:outline-none focus:shadow-brutal-sm transition-all text-brutal-text"
                                                 placeholder={t('mainTitlePlaceholder')}
                                             />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-black uppercase mb-2 text-[#000000]">
+                                            <h2 className="text-xl font-black uppercase mb-2 text-brutal-text">
                                                 {t('uploadTemplateTitle')}
                                             </h2>
                                             <FileUpload
@@ -664,13 +668,13 @@ const App: React.FC = () => {
                                         </div>
 
                                         <div className="flex justify-between pt-6">
-                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-surface text-brutal-text border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
                                                 <ArrowLeftIcon className="w-5 h-5" />
                                             </button>
                                             <button 
                                                 onClick={() => setCurrentStep(3)} 
                                                 disabled={!uploadedTemplate}
-                                                className={`flex items-center justify-center px-6 py-3 font-bold border-4 border-[#000000] shadow-brutal transition-all ${!uploadedTemplate ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-[#0033FF] text-[#FFFFFF] hover:-translate-y-1 hover:shadow-brutal-lg'}`} 
+                                                className={`flex items-center justify-center px-6 py-3 font-bold border-4 border-brutal-border shadow-brutal transition-all ${!uploadedTemplate ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-brutal-accent text-brutal-white hover:-translate-y-1 hover:shadow-brutal-lg'}`} 
                                                 aria-label={t('nextButton')}
                                             >
                                                 <ArrowRightIcon className="w-5 h-5" />
@@ -683,28 +687,28 @@ const App: React.FC = () => {
                         
                         {currentStep === 3 && massType !== 'dataEntry' && (
                             <StepContainer>
-                                <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-6">
+                                <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-6">
                                     {massType === 'harian' && (
-                                        <details className="bg-[#FFFFFF] p-4 border-4 border-[#000000] group">
-                                            <summary className="font-bold uppercase cursor-pointer list-none flex justify-between items-center hover:bg-[#F5EAD7] p-2 -m-2 text-[#000000]">
+                                        <details className="bg-brutal-surface p-4 border-4 border-brutal-border group">
+                                            <summary className="font-bold uppercase cursor-pointer list-none flex justify-between items-center hover:bg-brutal-bg p-2 -m-2 text-brutal-text">
                                                 <div className="flex items-center gap-2">
                                                     <SlidersIcon className="w-5 h-5" />
                                                     Optional Sections
                                                 </div>
-                                                <span className="border-2 border-[#000000] p-1 group-open:bg-[#000000] group-open:text-[#FFFFFF] transition-colors">
+                                                <span className="border-2 border-brutal-border p-1 group-open:bg-brutal-border group-open:text-brutal-bg transition-colors">
                                                      <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                                 </span>
                                             </summary>
-                                            <div className="mt-4 pt-4 border-t-4 border-[#000000] grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                            <div className="mt-4 pt-4 border-t-4 border-brutal-border grid grid-cols-2 sm:grid-cols-3 gap-4">
                                                 {optionalSectionsConfig.map(section => (
                                                     <label key={section.key} className="flex items-center space-x-2 cursor-pointer text-sm font-bold">
                                                         <input 
                                                             type="checkbox" 
-                                                            className="w-5 h-5 border-2 border-[#000000] accent-[#000000] rounded-none focus:ring-0"
+                                                            className="w-5 h-5 border-2 border-brutal-border accent-brutal-border rounded-none focus:ring-0"
                                                             checked={harianOptionalSections[section.key]}
                                                             onChange={() => handleHarianToggle(section.key)}
                                                         />
-                                                        <span className="text-[#000000] uppercase">{section.label}</span>
+                                                        <span className="text-brutal-text uppercase">{section.label}</span>
                                                     </label>
                                                 ))}
                                             </div>
@@ -728,16 +732,16 @@ const App: React.FC = () => {
                                                 const isMultiImage = field.types.includes('multi-image');
 
                                                 return (
-                                                <div key={uniqueFieldId} className="bg-[#FFFFFF] p-4 border-4 border-[#000000] space-y-4">
-                                                    <div className="flex justify-between items-center border-b-4 border-[#000000] pb-2">
-                                                        <h3 className="text-lg font-black uppercase bg-[#0033FF] text-[#FFFFFF] px-2 border-2 border-[#000000]">{field.label}</h3>
+                                                <div key={uniqueFieldId} className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4">
+                                                    <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
+                                                        <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">{field.label}</h3>
                                                         {field.types.length > 1 && (
                                                             <div className="flex items-center gap-2">
                                                                 {field.types.includes('text') && (
-                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-2 border-2 border-[#000000] font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-[#000000] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#000000] hover:bg-gray-200'}`} aria-label="Switch to Text Mode">TEXT</button>
+                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode">TEXT</button>
                                                                 )}
                                                                 {(field.types.includes('image') || field.types.includes('multi-image')) && (
-                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-2 border-2 border-[#000000] font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-[#000000] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#000000] hover:bg-gray-200'}`} aria-label="Switch to Image Mode">IMG</button>
+                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode">IMG</button>
                                                                 )}
                                                             </div>
                                                         )}
@@ -745,21 +749,21 @@ const App: React.FC = () => {
 
                                                     <div className="grid grid-cols-1 gap-4">
                                                         <div>
-                                                            <label htmlFor={titleKey} className="block text-xs font-bold uppercase mb-1 text-[#000000]">Title</label>
+                                                            <label htmlFor={titleKey} className="block text-xs font-bold uppercase mb-1 text-brutal-text">Title</label>
                                                             <input
                                                                 type="text"
                                                                 id={titleKey}
                                                                 name={titleKey}
                                                                 value={(presentationData as any)[titleKey] || ''}
                                                                 onChange={handleInputChange}
-                                                                className="w-full bg-[#F5EAD7] border-2 border-[#000000] p-2 font-mono text-sm focus:bg-[#FFFFFF] focus:outline-none text-[#000000]"
+                                                                className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none text-brutal-text"
                                                             />
                                                         </div>
                                                         {currentMode === 'text' && textKey ? (
                                                             <div>
                                                                 <div className="flex justify-between items-center mb-1">
-                                                                    <label htmlFor={textKey} className="block text-xs font-bold uppercase text-[#000000]">Text</label>
-                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 border-2 border-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition text-[#000000]" aria-label="Paragraphify Text">
+                                                                    <label htmlFor={textKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
+                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" aria-label="Paragraphify Text">
                                                                         <ParagraphIcon className="w-4 h-4" />
                                                                     </button>
                                                                 </div>
@@ -768,13 +772,13 @@ const App: React.FC = () => {
                                                                     name={textKey}
                                                                     value={(presentationData as any)[textKey] || ''}
                                                                     onChange={handleInputChange}
-                                                                    className="w-full h-32 bg-[#F5EAD7] border-2 border-[#000000] p-2 font-mono text-sm focus:bg-[#FFFFFF] focus:outline-none hide-scrollbar text-[#000000]"
+                                                                    className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"
                                                                 />
                                                             </div>
                                                         ) : (
                                                             imageKey ? (
                                                                 <div>
-                                                                    <label className="block text-xs font-bold uppercase mb-1 text-[#000000]">Image</label>
+                                                                    <label className="block text-xs font-bold uppercase mb-1 text-brutal-text">Image</label>
                                                                     <FileUpload
                                                                         id={imageKey}
                                                                         onFileSelect={(files) => handleFileChange(imageKey, files)}
@@ -796,10 +800,10 @@ const App: React.FC = () => {
                                             )})}
                                     </div>
                                      <div className="flex justify-between pt-4">
-                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-surface text-brutal-text border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
                                             <ArrowLeftIcon className="w-5 h-5" />
                                         </button>
-                                        <button onClick={() => setCurrentStep(4)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#0033FF] text-[#FFFFFF] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
+                                        <button onClick={() => setCurrentStep(4)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-accent text-brutal-white border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
                                             <ArrowRightIcon className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -809,33 +813,33 @@ const App: React.FC = () => {
 
                         {currentStep === 4 && massType !== 'dataEntry' && (
                             <StepContainer>
-                                 <div className="bg-[#FFFFFF] p-8 border-4 border-[#000000] shadow-brutal-lg text-center">
-                                    <h2 className="text-3xl font-black uppercase mb-6 text-[#000000]">{t('finalMessage')}</h2>
+                                 <div className="bg-brutal-surface p-8 border-4 border-brutal-border shadow-brutal-lg text-center">
+                                    <h2 className="text-3xl font-black uppercase mb-6 text-brutal-text">{t('finalMessage')}</h2>
                                     <button 
                                         onClick={handleGenerate} 
                                         disabled={isGenerateDisabled}
-                                        className={`w-full max-w-sm mx-auto py-4 px-6 text-xl font-black uppercase border-4 border-[#000000] shadow-brutal transition-all flex items-center justify-center gap-2
+                                        className={`w-full max-w-sm mx-auto py-4 px-6 text-xl font-black uppercase border-4 border-brutal-border shadow-brutal transition-all flex items-center justify-center gap-2
                                             ${isGenerateDisabled 
-                                                ? 'bg-gray-400 cursor-not-allowed text-[#000000]' 
-                                                : 'bg-[#0033FF] text-[#FFFFFF] hover:-translate-y-2 hover:shadow-brutal-lg'}`
+                                                ? 'bg-gray-400 cursor-not-allowed text-brutal-text' 
+                                                : 'bg-brutal-accent text-brutal-white hover:-translate-y-2 hover:shadow-brutal-lg'}`
                                         }>
                                         {isLoading ? <><LoaderIcon className="w-6 h-6" /> {t('generatingButton')}</> : <><DownloadIcon className="w-6 h-6"/> {t('generateButton')}</>}
                                     </button>
                                     <div className="flex justify-start pt-8">
-                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-surface text-brutal-text border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
                                             <ArrowLeftIcon className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
                                  <div className="h-10 text-center mt-6 font-mono font-bold">
                                     {isLoading && (
-                                        <div className="flex items-center justify-center gap-2 text-[#000000]">
+                                        <div className="flex items-center justify-center gap-2 text-brutal-text">
                                             <LoaderIcon className="w-4 h-4"/>
                                             <p>{statusMessage}</p>
                                         </div>
                                     )}
                                     {!isLoading && statusMessage && !error && (
-                                        <p className="text-[#000000] bg-[#0033FF]/20 border-2 border-[#0033FF] inline-block px-2">{statusMessage}</p>
+                                        <p className="text-brutal-text bg-brutal-accent/20 border-2 border-brutal-accent inline-block px-2">{statusMessage}</p>
                                     )}
                                     {error && (
                                         <div className="flex items-center justify-center gap-2 text-red-600 bg-red-100 border-2 border-red-600 p-2 inline-block">

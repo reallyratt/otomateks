@@ -1,25 +1,24 @@
-
 import React from 'react';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className="space-y-3">
-        <h3 className="text-xl font-black uppercase text-[#000000] border-b-4 border-[#000000] pb-2 mb-3 inline-block">
+        <h3 className="text-xl font-black uppercase text-brutal-text border-b-4 border-brutal-border pb-2 mb-3 inline-block">
             {title}
         </h3>
-        <div className="text-[#000000] space-y-4 text-sm leading-relaxed">
+        <div className="text-brutal-text space-y-4 text-sm leading-relaxed">
             {children}
         </div>
     </div>
 );
 
-const Code: React.FC<{children: React.ReactNode}> = ({ children }) => <code className="bg-[#F5EAD7] px-1.5 py-1 border border-[#000000] text-[#000000] font-mono text-xs">{children}</code>;
-const Highlight: React.FC<{children: React.ReactNode}> = ({ children }) => <span className="bg-[#000000] text-[#FFFFFF] px-1 font-bold">{children}</span>;
+const Code: React.FC<{children: React.ReactNode}> = ({ children }) => <code className="bg-brutal-bg px-1.5 py-1 border border-brutal-border text-brutal-text font-mono text-xs">{children}</code>;
+const Highlight: React.FC<{children: React.ReactNode}> = ({ children }) => <span className="bg-brutal-border text-brutal-bg px-1 font-bold">{children}</span>;
 
 
 export const DevlogModal: React.FC = () => {
     return (
-        <div className="text-sm text-[#000000] space-y-8 max-h-[70vh] overflow-y-auto pr-4 hide-scrollbar">
-            <div className="text-center bg-[#0033FF] text-[#FFFFFF] p-4 border-4 border-[#000000] shadow-brutal">
+        <div className="text-sm text-brutal-text space-y-8">
+            <div className="text-center bg-brutal-accent text-brutal-white p-4 border-4 border-brutal-border shadow-brutal">
                 <h2 className="text-2xl font-black uppercase">
                     Otomateks: The Journey
                 </h2>
@@ -42,11 +41,11 @@ export const DevlogModal: React.FC = () => {
             
             <Section title="Key Feature Milestones">
                 <div>
-                    <h4 className="font-bold text-base bg-[#F5EAD7] inline-block px-1 border border-[#000000] mb-2">V1: The Templating Engine</h4>
+                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V1: The Templating Engine</h4>
                     <p>The core challenge was replacing placeholder text within the PowerPoint template. The system was designed to find any text enclosed in double curly braces, like <Code>{`{{bacaan1Text}}`}</Code>, and substitute it with the corresponding text from the web form. This formed the foundation of the entire automation process.</p>
                 </div>
                  <div>
-                    <h4 className="font-bold text-base bg-[#F5EAD7] inline-block px-1 border border-[#000000] mb-2">V2: Advanced Text Handling & Slide Duplication</h4>
+                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V2: Advanced Text Handling & Slide Duplication</h4>
                     <p>A major hurdle appeared with long texts, such as the readings or homilies, which wouldn't fit on a single slide. This led to the development of the "smart chunking" and "slide duplication" logic.</p>
                     <p>
                         When a text exceeds a certain character limit, the system automatically:
@@ -62,7 +61,7 @@ export const DevlogModal: React.FC = () => {
                 </div>
 
                 <div>
-                    <h4 className="font-bold text-base bg-[#F5EAD7] inline-block px-1 border border-[#000000] mb-2">V3: UI/UX Revolution</h4>
+                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V3: UI/UX Revolution</h4>
                     <p>With the core logic in place, focus shifted to user experience. The single, long form was replaced with a guided, multi-step process. This is when the customization features were introduced:</p>
                      <ul className="list-disc list-inside pl-4 space-y-2">
                         <li><Highlight>Internationalization (i18n):</Highlight> The entire app's text was moved into a centralized translation file, allowing for an easy switch between English and Indonesian.</li>
@@ -71,7 +70,7 @@ export const DevlogModal: React.FC = () => {
                     </ul>
                 </div>
                  <div>
-                    <h4 className="font-bold text-base bg-[#F5EAD7] inline-block px-1 border border-[#000000] mb-2">V4: Quality of Life & Media</h4>
+                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V4: Quality of Life & Media</h4>
                     <p>The final touches involved adding more user-friendly features. An image upload option was added for sections like songs, along with a custom drag-and-drop file component. Comprehensive guides and this very Devlog were created to make the app as easy to use as possible.</p>
                 </div>
             </Section>
@@ -85,10 +84,10 @@ export const DevlogModal: React.FC = () => {
                 </ul>
             </Section>
 
-             <div className="text-center pt-4 border-t-4 border-[#000000]">
+             <div className="text-center pt-4 border-t-4 border-brutal-border">
                 <p>Thank you for using Otomateks and for your interest in its development!</p>
                   <p className="mt-4 text-xs font-bold">
-                    - <a href="https://www.instagram.com/reallyratt" target="_blank" rel="noopener noreferrer" className="text-[#0033FF] hover:bg-[#0033FF] hover:text-[#FFFFFF] px-1">@reallyratt</a>
+                    - <a href="https://www.instagram.com/reallyratt" target="_blank" rel="noopener noreferrer" className="text-brutal-accent hover:bg-brutal-accent hover:text-brutal-white px-1">@reallyratt</a>
                 </p>
             </div>
 

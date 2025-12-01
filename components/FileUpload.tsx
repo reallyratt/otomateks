@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { UploadIcon, XIcon, PencilIcon, ContrastIcon } from './icons';
 
@@ -103,15 +102,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className={`flex flex-col items-center justify-center w-full h-32 border-4 border-[#000000] cursor-pointer transition-all duration-200
-                    ${isDragging ? 'bg-[#0033FF]/20 scale-95' : 'bg-[#FFFFFF] hover:bg-[#F5EAD7] hover:-translate-y-1 hover:shadow-brutal'}`}
+                className={`flex flex-col items-center justify-center w-full h-32 border-4 border-brutal-border cursor-pointer transition-all duration-200
+                    ${isDragging ? 'bg-brutal-accent/20 scale-95' : 'bg-brutal-surface hover:bg-brutal-bg hover:-translate-y-1 hover:shadow-brutal'}`}
             >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <UploadIcon className={`w-8 h-8 mb-3 text-[#000000]`} />
-                    <p className={`mb-2 text-sm text-center font-bold uppercase text-[#000000]`}>
-                        <span className="bg-[#000000] text-[#FFFFFF] px-1">{label}</span> or drag
+                    <UploadIcon className={`w-8 h-8 mb-3 text-brutal-text`} />
+                    <p className={`mb-2 text-sm text-center font-bold uppercase text-brutal-text`}>
+                        <span className="bg-brutal-border text-brutal-bg px-1">{label}</span> or drag
                     </p>
-                    <p className="text-xs font-mono border border-[#000000] px-1 bg-[#F5EAD7] text-[#000000]">
+                    <p className="text-xs font-mono border border-brutal-border px-1 bg-brutal-bg text-brutal-text">
                         {fileTypeDescription(accept)}
                     </p>
                 </div>
@@ -119,13 +118,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             </label>
             {files.length > 0 && (
                 <div className="mt-4 space-y-2">
-                    <h4 className="text-xs font-black uppercase border-b-2 border-[#000000] inline-block text-[#000000]">Uploaded Files</h4>
+                    <h4 className="text-xs font-black uppercase border-b-2 border-brutal-border inline-block text-brutal-text">Uploaded Files</h4>
                     <ul className="space-y-2">
                         {files.map(file => (
-                            <li key={file.name} className="flex items-center justify-between bg-[#FFFFFF] border-2 border-[#000000] p-2 shadow-brutal-sm group hover:translate-x-1 transition-transform">
+                            <li key={file.name} className="flex items-center justify-between bg-brutal-surface border-2 border-brutal-border p-2 shadow-brutal-sm group hover:translate-x-1 transition-transform">
                                 <button 
                                     onClick={() => handlePreview(file)}
-                                    className={`text-[#000000] font-bold truncate pr-2 text-left text-sm ${isImage ? 'hover:underline cursor-pointer' : ''}`}
+                                    className={`text-brutal-text font-bold truncate pr-2 text-left text-sm ${isImage ? 'hover:underline cursor-pointer' : ''}`}
                                     title={isImage ? "Click to preview" : file.name}
                                 >
                                     {file.name}
@@ -134,7 +133,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                      {isImage && onFileEdit && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onFileEdit(file.name); }}
-                                            className="text-[#000000] border-2 border-[#000000] p-1 hover:bg-[#0033FF] hover:text-[#FFFFFF] transition-colors"
+                                            className="text-brutal-text border-2 border-brutal-border p-1 hover:bg-brutal-accent hover:text-brutal-white transition-colors"
                                             aria-label={`Edit ${file.name}`}
                                         >
                                             <PencilIcon className="w-3 h-3" />
@@ -144,10 +143,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                     {isImage && onInvertToggle && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onInvertToggle(file.name); }}
-                                            className={`p-1 border-2 border-[#000000] transition-colors ${
+                                            className={`p-1 border-2 border-brutal-border transition-colors ${
                                                 invertedFiles.has(file.name)
-                                                    ? 'bg-[#000000] text-[#FFFFFF]'
-                                                    : 'bg-[#FFFFFF] text-[#000000] hover:bg-[#F5EAD7]'
+                                                    ? 'bg-brutal-border text-brutal-bg'
+                                                    : 'bg-brutal-surface text-brutal-text hover:bg-brutal-bg'
                                             }`}
                                             aria-label={`Invert colors for ${file.name}`}
                                         >
@@ -158,7 +157,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                     {onFileRemove && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onFileRemove(file.name); }}
-                                            className="text-[#FFFFFF] bg-red-600 border-2 border-[#000000] p-1 hover:bg-red-700 transition-colors"
+                                            className="text-brutal-white bg-red-600 border-2 border-brutal-border p-1 hover:bg-red-700 transition-colors"
                                             aria-label={`Remove ${file.name}`}
                                         >
                                             <XIcon className="w-3 h-3" />
@@ -174,23 +173,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             {/* Image Preview Modal */}
             {previewUrl && (
                 <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-[#F5EAD7]/90 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-brutal-bg/90 p-4"
                     onClick={closePreview}
                 >
-                    <div className="relative border-4 border-[#000000] bg-[#FFFFFF] p-2 shadow-brutal-lg max-w-[95vw] max-h-[95dvh] flex flex-col items-center">
+                    <div className="relative border-4 border-brutal-border bg-brutal-surface p-2 shadow-brutal-lg max-w-[95vw] max-h-[95dvh] flex flex-col items-center">
                          <button 
                             onClick={closePreview}
-                            className="absolute -top-6 -right-6 p-2 text-[#FFFFFF] bg-[#000000] border-2 border-[#FFFFFF] shadow-[2px_2px_0px_#000000] hover:scale-110 transition z-50"
+                            className="absolute -top-6 -right-6 p-2 text-brutal-bg bg-brutal-border border-2 border-brutal-surface shadow-[2px_2px_0px_var(--brutal-border)] hover:scale-110 transition z-50"
                          >
                             <XIcon className="w-6 h-6" />
                          </button>
                          <img 
                             src={previewUrl} 
                             alt="Preview" 
-                            className="max-w-full max-h-[85dvh] w-auto h-auto object-contain border-2 border-[#000000]"
+                            className="max-w-full max-h-[85dvh] w-auto h-auto object-contain border-2 border-brutal-border"
                             onClick={(e) => e.stopPropagation()} 
                         />
-                         <p className="mt-2 text-[#000000] font-mono font-bold text-sm bg-[#0033FF] text-[#FFFFFF] px-2 border-2 border-[#000000]">{previewFileName}</p>
+                         <p className="mt-2 text-brutal-text font-mono font-bold text-sm bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">{previewFileName}</p>
                     </div>
                 </div>
             )}

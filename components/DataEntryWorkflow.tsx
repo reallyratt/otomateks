@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { PresentationIcon, ExcelIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, CogIcon } from './icons';
 import { FileUpload } from './FileUpload';
@@ -141,9 +140,9 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
 
     return (
         <div className="space-y-6">
-            <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-4">
-                <h2 className="text-2xl font-black uppercase text-[#000000] flex items-center gap-3">
-                    <span className="bg-[#0033FF] text-[#FFFFFF] p-2 border-2 border-[#000000]"><PresentationIcon className="w-5 h-5"/></span>
+            <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-4">
+                <h2 className="text-2xl font-black uppercase text-brutal-text flex items-center gap-3">
+                    <span className="bg-brutal-accent text-brutal-white p-2 border-2 border-brutal-border"><PresentationIcon className="w-5 h-5"/></span>
                     Upload Files
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -162,51 +161,51 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                 </div>
             </div>
 
-            {isParsing && <div className="flex justify-center items-center gap-2 text-[#000000] font-bold bg-[#F5EAD7] p-2 border border-[#000000] w-fit mx-auto"><LoaderIcon className="w-4 h-4"/> Parsing files...</div>}
+            {isParsing && <div className="flex justify-center items-center gap-2 text-brutal-text font-bold bg-brutal-bg p-2 border border-brutal-border w-fit mx-auto"><LoaderIcon className="w-4 h-4"/> Parsing files...</div>}
 
             {showConfig && (
-                <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
+                <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
                     <div>
-                        <h2 className="text-2xl font-black uppercase text-[#000000] flex items-center gap-3 mb-4">
-                             <span className="bg-[#0033FF] text-[#FFFFFF] p-2 border-2 border-[#000000]"><CogIcon className="w-5 h-5"/></span>
+                        <h2 className="text-2xl font-black uppercase text-brutal-text flex items-center gap-3 mb-4">
+                             <span className="bg-brutal-accent text-brutal-white p-2 border-2 border-brutal-border"><CogIcon className="w-5 h-5"/></span>
                             Configuration
                         </h2>
 
-                        <div className="space-y-4 bg-[#F5EAD7] p-4 border-2 border-[#000000]">
-                            <h3 className="font-bold text-[#000000] uppercase">Map Placeholders to Columns</h3>
+                        <div className="space-y-4 bg-brutal-bg p-4 border-2 border-brutal-border">
+                            <h3 className="font-bold text-brutal-text uppercase">Map Placeholders to Columns</h3>
                              <div className="space-y-3">
                                 {placeholders.length > 0 ? placeholders.map(p => (
                                     <div key={p} className="grid grid-cols-3 items-center gap-4">
-                                        <label htmlFor={`map-${p}`} className="text-sm font-bold text-right text-[#000000] bg-[#FFFFFF] px-1 border border-[#000000]">{`{{${p}}}`}</label>
-                                        <span className="text-center text-[#000000] font-bold">→</span>
+                                        <label htmlFor={`map-${p}`} className="text-sm font-bold text-right text-brutal-text bg-brutal-surface px-1 border border-brutal-border">{`{{${p}}}`}</label>
+                                        <span className="text-center text-brutal-text font-bold">→</span>
                                         <input
                                             type="text"
                                             id={`map-${p}`}
                                             value={mappings[p] || ''}
                                             onChange={(e) => handleMappingChange(p, e.target.value)}
-                                            className="w-full bg-[#FFFFFF] border-2 border-[#000000] px-3 py-2 text-[#000000] text-sm focus:bg-yellow-50 focus:outline-none font-mono"
+                                            className="w-full bg-brutal-surface border-2 border-brutal-border px-3 py-2 text-brutal-text text-sm focus:bg-brutal-bg/10 focus:outline-none font-mono"
                                             placeholder="e.g., A"
                                             maxLength={2}
                                         />
                                     </div>
-                                )) : <p className="text-sm text-[#000000] text-center">No placeholders like {'`{{example}}`'} found in the template.</p>}
+                                )) : <p className="text-sm text-brutal-text text-center">No placeholders like {'`{{example}}`'} found in the template.</p>}
                             </div>
                         </div>
 
-                        <div className="space-y-4 bg-[#F5EAD7] p-4 border-2 border-[#000000] mt-4">
-                            <h3 className="font-bold text-[#000000] uppercase">Grouping Options</h3>
+                        <div className="space-y-4 bg-brutal-bg p-4 border-2 border-brutal-border mt-4">
+                            <h3 className="font-bold text-brutal-text uppercase">Grouping Options</h3>
                             <div>
-                                <label htmlFor="grouping-column" className="block text-sm font-bold text-[#000000] mb-1">Grouping Column</label>
+                                <label htmlFor="grouping-column" className="block text-sm font-bold text-brutal-text mb-1">Grouping Column</label>
                                     <input
                                     type="text"
                                     id="grouping-column"
                                     value={groupingColumn}
                                     onChange={(e) => handleGroupingColumnChange(e.target.value)}
-                                    className="w-full bg-[#FFFFFF] border-2 border-[#000000] px-3 py-2 text-[#000000] text-sm focus:bg-yellow-50 focus:outline-none font-mono"
+                                    className="w-full bg-brutal-surface border-2 border-brutal-border px-3 py-2 text-brutal-text text-sm focus:bg-brutal-bg/10 focus:outline-none font-mono"
                                     placeholder="e.g., B (optional)"
                                     maxLength={2}
                                 />
-                                <p className="text-xs text-[#000000] mt-1 font-mono">Starts a new slide for each non-empty cell. Subsequent empty rows are grouped onto the same slide. If left empty, each row becomes a separate slide.</p>
+                                <p className="text-xs text-brutal-text mt-1 font-mono">Starts a new slide for each non-empty cell. Subsequent empty rows are grouped onto the same slide. If left empty, each row becomes a separate slide.</p>
                             </div>
                         </div>
                     </div>
@@ -215,10 +214,10 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                         <button 
                             onClick={handleGenerate} 
                             disabled={isGenerateDisabled}
-                            className={`w-full max-w-xs mx-auto py-3 px-6 text-lg font-black uppercase transition-all duration-300 ease-in-out flex items-center justify-center gap-2 border-4 border-[#000000] shadow-brutal
+                            className={`w-full max-w-xs mx-auto py-3 px-6 text-lg font-black uppercase transition-all duration-300 ease-in-out flex items-center justify-center gap-2 border-4 border-brutal-border shadow-brutal
                                 ${isGenerateDisabled 
                                     ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
-                                    : 'bg-[#0033FF] text-[#FFFFFF] hover:-translate-y-1 hover:shadow-brutal-lg'}`
+                                    : 'bg-brutal-accent text-brutal-white hover:-translate-y-1 hover:shadow-brutal-lg'}`
                             }>
                             {isLoading ? <><LoaderIcon className="w-4 h-4"/> Generating...</> : <><DownloadIcon className="w-4 h-4"/> Generate & Download</>}
                         </button>
@@ -228,13 +227,13 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
             
             <div className="h-10 text-center mt-6 font-mono font-bold">
                 {isLoading && (
-                    <div className="flex items-center justify-center gap-2 text-[#000000]">
+                    <div className="flex items-center justify-center gap-2 text-brutal-text">
                         <LoaderIcon className="w-4 h-4"/>
                         <p>{statusMessage}</p>
                     </div>
                 )}
                 {!isLoading && statusMessage && !error && (
-                    <p className="text-[#000000] bg-[#0033FF]/20 px-2 border border-[#0033FF] inline-block">{statusMessage}</p>
+                    <p className="text-brutal-text bg-brutal-accent/20 px-2 border border-brutal-accent inline-block">{statusMessage}</p>
                 )}
                 {error && (
                     <div className="flex items-center justify-center gap-2 text-red-600 bg-red-100 border-2 border-red-600 p-2 inline-block">
