@@ -62,7 +62,6 @@ const formConfig: FormField[] = [
     { label: 'Doa Atas Persembahan', titleKey: 'A29', textKey: 'B29', types: ['text'] },
     { label: 'Lagu Komuni I', titleKey: 'A30', textKey: 'B30', imageKey: 'C30', types: ['text', 'multi-image'], section: 'showLaguKomuni' },
     { label: 'Lagu Komuni II', titleKey: 'A31', textKey: 'B31', imageKey: 'C31', types: ['text', 'multi-image'], optional: true, section: 'showLaguKomuni' },
-    // Reverted keys to 32/34 to align with A30/A31 pattern, resolving title display issues
     { label: 'Lagu Komuni III', titleKey: 'A32', textKey: 'B32', imageKey: 'C32', types: ['text', 'multi-image'], optional: true, section: 'showLaguKomuni' },
     { label: 'Doa Sesudah Komuni', titleKey: 'A33', textKey: 'B33', types: ['text'], section: 'showDoaSesudahKomuni' },
     { label: 'Lagu Penutup', titleKey: 'A34', textKey: 'B34', imageKey: 'C34', types: ['text', 'multi-image'], section: 'showLaguPenutup' },
@@ -181,7 +180,7 @@ const invertImageBase64 = (base64String: string): Promise<string> => {
 
 
 const StepContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
-    <div className="animate-[fadeIn_0.5s_ease-in-out] p-1">{children}</div>
+    <div className="animate-none p-1">{children}</div>
 );
 
 type HarianSections = 'showLaguPembuka' | 'showTuhanKasihanilahKami' | 'showDoaKolekta' | 'showBacaan2' | 'showDoaUmat' | 'showLaguPersembahan' | 'showLaguKomuni' | 'showDoaSesudahKomuni' | 'showLaguPenutup';
@@ -214,9 +213,8 @@ const App: React.FC = () => {
     const [isDevlogOpen, setIsDevlogOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
     
-    // Theming and Language State
-    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-    const [accentColor, setAccentColor] = useState('sky');
+    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [accentColor, setAccentColor] = useState('black');
     
     // Image Handling State
     const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File[] }>({});
@@ -280,16 +278,6 @@ const App: React.FC = () => {
             ]
         }
     ];
-
-    useEffect(() => {
-        const root = document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
-    }, [theme]);
-    
-    useEffect(() => {
-        document.documentElement.dataset.accent = accentColor;
-    }, [accentColor]);
 
      useEffect(() => {
         const newDefaults = massLanguage === 'jawa' ? defaultTitlesJawa : defaultTitlesIndonesia;
@@ -459,13 +447,11 @@ const App: React.FC = () => {
             if (index === -1) return prev;
             
             const updatedFilesForKey = [...oldList];
-            // Replace the original file with the new files (can be multiple if slides were added)
             updatedFilesForKey.splice(index, 1, ...newFiles);
             
             return { ...prev, [key]: updatedFilesForKey };
         });
 
-        // Update base64 cache
         const newCacheForKey: { [fileName: string]: string } = {};
         await Promise.all(newFiles.map(async (file) => {
             const base64 = await fileToBase64(file);
@@ -478,7 +464,6 @@ const App: React.FC = () => {
             return { ...prev, [key]: { ...updatedCache, ...newCacheForKey } };
         });
 
-        // Clean up inverted state for the original file
         setInvertedImages(prev => {
             const newInverted = { ...prev };
             if (newInverted[key]) {
@@ -490,7 +475,6 @@ const App: React.FC = () => {
             return newInverted;
         });
 
-        // Close modal
         setIsEditModalOpen(false);
         setEditingFile(null);
     };
@@ -549,20 +533,15 @@ const App: React.FC = () => {
     const isGenerateDisabled = !uploadedTemplate || !presentationData.presentationTitle || isLoading;
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans transition-colors duration-300 relative overflow-hidden">
-            <div className="absolute inset-0">
-                <div className="absolute top-0 -left-1/4 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[48rem] lg:h-[48rem] bg-[var(--accent-color-500)]/30 rounded-full filter blur-3xl opacity-50 animate-[blob_7s_infinite]"></div>
-                <div className="absolute bottom-0 -right-1/4 w-96 h-96 sm:w-[32rem] sm:h-[32rem] lg:w-[48rem] lg:h-[48rem] bg-pink-500/30 rounded-full filter blur-3xl opacity-50 animate-[blob_10s_infinite_4s]"></div>
-            </div>
-            
+        <div className="min-h-screen bg-[#F5EAD7] text-[#000000] font-sans relative overflow-hidden">
             <div className="relative z-10 flex flex-col items-center p-4 sm:p-6 lg:p-8 min-h-screen overflow-y-auto hide-scrollbar">
                 <div className="w-full max-w-4xl mx-auto">
-                    <header className="flex justify-between items-start mb-8">
+                    <header className="flex justify-between items-start mb-8 bg-[#FFFFFF] border-4 border-[#000000] p-4 shadow-brutal">
                         <div className="text-left">
-                             <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-color-400)] to-[var(--accent-color-300)] mb-2">
+                             <h1 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tighter mb-2 text-[#000000]">
                                 Otomateks
                             </h1>
-                            <p className="text-lg text-[var(--text-secondary)]">
+                            <p className="text-lg font-bold bg-[#0033FF] text-[#FFFFFF] inline-block px-2 border-2 border-[#000000]">
                                 {t('appSubtitle')}
                             </p>
                         </div>
@@ -572,49 +551,47 @@ const App: React.FC = () => {
                     <main className="space-y-6">
                         {currentStep === 1 && (
                              <StepContainer>
-                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-8">
-                                    {/* Language Section */}
+                                <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-8">
                                     <div className="space-y-3">
-                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">
+                                        <h3 className="text-xl font-black uppercase border-b-4 border-[#000000] inline-block text-[#000000]">
                                             {t('bahasa')}
                                         </h3>
-                                        <div className="flex items-center gap-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                                        <div className="flex gap-4">
                                             <button 
                                                 onClick={() => setMassLanguage('indonesia')} 
-                                                className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${massLanguage === 'indonesia' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-[#000000] transition-all ${massLanguage === 'indonesia' ? 'bg-[#000000] text-[#FFFFFF] shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-[#FFFFFF] text-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
                                             >
-                                                Indonesia
+                                                INDONESIA
                                             </button>
                                             <button 
                                                 onClick={() => setMassLanguage('jawa')} 
-                                                className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 transform hover:scale-105 active:scale-100 ${massLanguage === 'jawa' ? 'bg-[var(--accent-color-500)] text-white shadow-lg shadow-[var(--accent-color-500)]/20' : 'text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}
+                                                className={`w-full px-4 py-3 text-sm font-bold border-4 border-[#000000] transition-all ${massLanguage === 'jawa' ? 'bg-[#000000] text-[#FFFFFF] shadow-none translate-x-[2px] translate-y-[2px]' : 'bg-[#FFFFFF] text-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'}`}
                                             >
-                                                Jawa
+                                                JAWA
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* Mass Type Section */}
                                     <div className="space-y-3">
-                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">
+                                        <h3 className="text-xl font-black uppercase border-b-4 border-[#000000] inline-block text-[#000000]">
                                             {t('tipeMisa')}
                                         </h3>
                                         <div className="space-y-4">
                                             {massOptions.map((group) => (
                                                 <div key={group.category}>
-                                                    <p className="text-sm font-bold text-[var(--text-secondary)] mb-2">{group.category}</p>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <p className="text-sm font-bold uppercase mb-2 bg-[#F5EAD7] text-[#000000] inline-block px-2 border-2 border-[#000000]">{group.category}</p>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         {group.options.map((option) => (
                                                             <label 
                                                                 key={option.id}
-                                                                className={`flex items-center p-3 rounded-lg border transition-all duration-200 transform ${
+                                                                className={`flex items-center p-3 border-4 border-[#000000] transition-all cursor-pointer ${
                                                                     !option.enabled
-                                                                        ? 'opacity-50 cursor-not-allowed'
-                                                                        : 'cursor-pointer hover:scale-[1.02] hover:border-[var(--accent-color-400)]'
+                                                                        ? 'opacity-50 cursor-not-allowed bg-gray-200'
+                                                                        : 'hover:bg-[#0033FF]/10'
                                                                 } ${
                                                                     massType === option.id 
-                                                                        ? 'bg-[var(--accent-color-500)]/20 border-[var(--accent-color-500)]' 
-                                                                        : 'border-[var(--border-secondary)] hover:bg-[var(--bg-hover)]'
+                                                                        ? 'bg-[#000000] text-[#FFFFFF]' 
+                                                                        : 'bg-[#FFFFFF] text-[#000000]'
                                                                 }`}
                                                             >
                                                                 <input
@@ -624,10 +601,10 @@ const App: React.FC = () => {
                                                                     checked={massType === option.id}
                                                                     onChange={() => setMassType(option.id as MassType)}
                                                                     disabled={!option.enabled}
-                                                                    className="w-4 h-4 text-[var(--accent-color-500)] bg-[var(--bg-tertiary)] border-[var(--border-primary)] focus:ring-[var(--accent-color-600)] disabled:opacity-50"
+                                                                    className="w-5 h-5 accent-[#0033FF] mr-3 border-2 border-[#000000]"
                                                                 />
-                                                                <span className="ml-3 text-sm font-medium text-[var(--text-primary)]">{option.label}</span>
-                                                                {!option.enabled && <span className="ml-auto text-xs text-yellow-400 bg-yellow-900/50 px-2 py-1 rounded-full">Coming Soon</span>}
+                                                                <span className="text-sm font-bold uppercase">{option.label}</span>
+                                                                {!option.enabled && <span className="ml-auto text-xs font-bold bg-[#0033FF] text-[#FFFFFF] border-2 border-[#000000] px-2 py-0.5">SOON</span>}
                                                             </label>
                                                         ))}
                                                     </div>
@@ -637,8 +614,8 @@ const App: React.FC = () => {
                                     </div>
 
                                     <div className="flex justify-end pt-4">
-                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105" aria-label={t('nextButton')}>
-                                            <ArrowRightIcon className="w-4 h-4" />
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#0033FF] text-[#FFFFFF] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
+                                            <ArrowRightIcon className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
@@ -651,15 +628,15 @@ const App: React.FC = () => {
                                     <>
                                         <DataEntryWorkflow presentationTitle={presentationData.presentationTitle || ''} />
                                         <div className="flex justify-start pt-4">
-                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
-                                                <ArrowLeftIcon className="w-4 h-4" />
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                                <ArrowLeftIcon className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6">
+                                    <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-6">
                                         <div>
-                                            <label htmlFor="presentationTitle" className="block text-lg font-bold text-[var(--accent-color-400)] mb-2">
+                                            <label htmlFor="presentationTitle" className="block text-xl font-black uppercase mb-2 text-[#000000]">
                                                 {t('namaFile')}
                                             </label>
                                             <input
@@ -668,12 +645,12 @@ const App: React.FC = () => {
                                                 name="presentationTitle"
                                                 value={presentationData.presentationTitle || ''}
                                                 onChange={handleInputChange}
-                                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                className="w-full bg-[#FFFFFF] border-4 border-[#000000] p-3 font-bold focus:bg-[#F5EAD7] focus:outline-none focus:shadow-brutal-sm transition-all text-[#000000]"
                                                 placeholder={t('mainTitlePlaceholder')}
                                             />
                                         </div>
                                         <div>
-                                            <h2 className="text-lg font-bold text-[var(--accent-color-400)] mb-2">
+                                            <h2 className="text-xl font-black uppercase mb-2 text-[#000000]">
                                                 {t('uploadTemplateTitle')}
                                             </h2>
                                             <FileUpload
@@ -687,16 +664,16 @@ const App: React.FC = () => {
                                         </div>
 
                                         <div className="flex justify-between pt-6">
-                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
-                                                <ArrowLeftIcon className="w-4 h-4" />
+                                            <button onClick={() => setCurrentStep(1)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                                <ArrowLeftIcon className="w-5 h-5" />
                                             </button>
                                             <button 
                                                 onClick={() => setCurrentStep(3)} 
                                                 disabled={!uploadedTemplate}
-                                                className={`flex items-center justify-center p-3 rounded-lg font-semibold text-white transition-all ${!uploadedTemplate ? 'bg-gray-500 cursor-not-allowed' : 'bg-[var(--accent-color-500)] hover:bg-[var(--accent-color-600)] transform hover:scale-105'}`} 
+                                                className={`flex items-center justify-center px-6 py-3 font-bold border-4 border-[#000000] shadow-brutal transition-all ${!uploadedTemplate ? 'bg-gray-300 cursor-not-allowed text-gray-500' : 'bg-[#0033FF] text-[#FFFFFF] hover:-translate-y-1 hover:shadow-brutal-lg'}`} 
                                                 aria-label={t('nextButton')}
                                             >
-                                                <ArrowRightIcon className="w-4 h-4" />
+                                                <ArrowRightIcon className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
@@ -706,30 +683,28 @@ const App: React.FC = () => {
                         
                         {currentStep === 3 && massType !== 'dataEntry' && (
                             <StepContainer>
-                                <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] space-y-6">
+                                <div className="bg-[#FFFFFF] p-6 border-4 border-[#000000] shadow-brutal-lg space-y-6">
                                     {massType === 'harian' && (
-                                        <details className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] group">
-                                            <summary className="font-semibold text-[var(--accent-color-400)] cursor-pointer list-none flex justify-between items-center">
+                                        <details className="bg-[#FFFFFF] p-4 border-4 border-[#000000] group">
+                                            <summary className="font-bold uppercase cursor-pointer list-none flex justify-between items-center hover:bg-[#F5EAD7] p-2 -m-2 text-[#000000]">
                                                 <div className="flex items-center gap-2">
-                                                    <SlidersIcon className="w-4 h-4" />
+                                                    <SlidersIcon className="w-5 h-5" />
                                                     Optional Sections
                                                 </div>
-                                                <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <span className="border-2 border-[#000000] p-1 group-open:bg-[#000000] group-open:text-[#FFFFFF] transition-colors">
+                                                     <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                                </span>
                                             </summary>
-                                            <div className="mt-4 pt-4 border-t border-[var(--border-secondary)] grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                            <div className="mt-4 pt-4 border-t-4 border-[#000000] grid grid-cols-2 sm:grid-cols-3 gap-4">
                                                 {optionalSectionsConfig.map(section => (
-                                                    <label key={section.key} className="flex items-center space-x-2 cursor-pointer text-sm">
-                                                        <div className="relative">
-                                                            <input 
-                                                                type="checkbox" 
-                                                                className="sr-only peer"
-                                                                checked={harianOptionalSections[section.key]}
-                                                                onChange={() => handleHarianToggle(section.key)}
-                                                            />
-                                                            <div className="w-10 h-6 rounded-full bg-[var(--bg-tertiary)] peer-checked:bg-[var(--accent-color-500)] transition-colors"></div>
-                                                            <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
-                                                        </div>
-                                                        <span className="text-[var(--text-secondary)]">{section.label}</span>
+                                                    <label key={section.key} className="flex items-center space-x-2 cursor-pointer text-sm font-bold">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="w-5 h-5 border-2 border-[#000000] accent-[#000000] rounded-none focus:ring-0"
+                                                            checked={harianOptionalSections[section.key]}
+                                                            onChange={() => handleHarianToggle(section.key)}
+                                                        />
+                                                        <span className="text-[#000000] uppercase">{section.label}</span>
                                                     </label>
                                                 ))}
                                             </div>
@@ -746,23 +721,23 @@ const App: React.FC = () => {
                                                 const titleKey = field.titleKey;
                                                 const textKey = field.textKey;
                                                 const imageKey = field.imageKey;
-                                                const uniqueFieldId = field.titleKey; // Use titleKey as unique ID
+                                                const uniqueFieldId = field.titleKey;
 
                                                 const defaultMode = field.types.includes('text') ? 'text' : 'image';
                                                 const currentMode = inputModes[uniqueFieldId] || defaultMode;
                                                 const isMultiImage = field.types.includes('multi-image');
 
                                                 return (
-                                                <div key={uniqueFieldId} className="bg-[var(--bg-primary)] p-4 rounded-lg border border-[var(--border-primary)] space-y-4">
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="text-lg font-bold text-[var(--accent-color-400)]">{field.label}</h3>
+                                                <div key={uniqueFieldId} className="bg-[#FFFFFF] p-4 border-4 border-[#000000] space-y-4">
+                                                    <div className="flex justify-between items-center border-b-4 border-[#000000] pb-2">
+                                                        <h3 className="text-lg font-black uppercase bg-[#0033FF] text-[#FFFFFF] px-2 border-2 border-[#000000]">{field.label}</h3>
                                                         {field.types.length > 1 && (
-                                                            <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-md">
+                                                            <div className="flex items-center gap-2">
                                                                 {field.types.includes('text') && (
-                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-1.5 rounded transition ${currentMode === 'text' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-2 border-2 border-[#000000] font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-[#000000] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#000000] hover:bg-gray-200'}`} aria-label="Switch to Text Mode">TEXT</button>
                                                                 )}
                                                                 {(field.types.includes('image') || field.types.includes('multi-image')) && (
-                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-1.5 rounded transition ${currentMode === 'image' ? 'bg-[var(--accent-color-500)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4"/></button>
+                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-2 border-2 border-[#000000] font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-[#000000] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#000000] hover:bg-gray-200'}`} aria-label="Switch to Image Mode">IMG</button>
                                                                 )}
                                                             </div>
                                                         )}
@@ -770,21 +745,21 @@ const App: React.FC = () => {
 
                                                     <div className="grid grid-cols-1 gap-4">
                                                         <div>
-                                                            <label htmlFor={titleKey} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
+                                                            <label htmlFor={titleKey} className="block text-xs font-bold uppercase mb-1 text-[#000000]">Title</label>
                                                             <input
                                                                 type="text"
                                                                 id={titleKey}
                                                                 name={titleKey}
                                                                 value={(presentationData as any)[titleKey] || ''}
                                                                 onChange={handleInputChange}
-                                                                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition"
+                                                                className="w-full bg-[#F5EAD7] border-2 border-[#000000] p-2 font-mono text-sm focus:bg-[#FFFFFF] focus:outline-none text-[#000000]"
                                                             />
                                                         </div>
                                                         {currentMode === 'text' && textKey ? (
                                                             <div>
                                                                 <div className="flex justify-between items-center mb-1">
-                                                                    <label htmlFor={textKey} className="block text-xs font-medium text-[var(--text-secondary)]">Text</label>
-                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition" aria-label="Paragraphify Text">
+                                                                    <label htmlFor={textKey} className="block text-xs font-bold uppercase text-[#000000]">Text</label>
+                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 border-2 border-[#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition text-[#000000]" aria-label="Paragraphify Text">
                                                                         <ParagraphIcon className="w-4 h-4" />
                                                                     </button>
                                                                 </div>
@@ -793,19 +768,19 @@ const App: React.FC = () => {
                                                                     name={textKey}
                                                                     value={(presentationData as any)[textKey] || ''}
                                                                     onChange={handleInputChange}
-                                                                    className="w-full h-32 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md px-3 py-2 text-[var(--text-primary)] text-sm focus:ring-2 focus:ring-[var(--accent-color-500)] focus:border-[var(--accent-color-500)] transition hide-scrollbar"
+                                                                    className="w-full h-32 bg-[#F5EAD7] border-2 border-[#000000] p-2 font-mono text-sm focus:bg-[#FFFFFF] focus:outline-none hide-scrollbar text-[#000000]"
                                                                 />
                                                             </div>
                                                         ) : (
                                                             imageKey ? (
                                                                 <div>
-                                                                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Image</label>
+                                                                    <label className="block text-xs font-bold uppercase mb-1 text-[#000000]">Image</label>
                                                                     <FileUpload
                                                                         id={imageKey}
                                                                         onFileSelect={(files) => handleFileChange(imageKey, files)}
                                                                         multiple={isMultiImage}
                                                                         accept="image/*"
-                                                                        label="Click to upload"
+                                                                        label="UPLOAD IMAGE"
                                                                         files={uploadedFiles[imageKey] || []}
                                                                         onFileRemove={(fileName) => handleFileRemove(imageKey, fileName)}
                                                                         onInvertToggle={(fileName) => handleInvertToggle(imageKey, fileName)}
@@ -814,18 +789,18 @@ const App: React.FC = () => {
                                                                         onFileEdit={(fileName) => handleFileEdit(imageKey, fileName)}
                                                                     />
                                                                 </div>
-                                                            ) : <div className="text-sm text-yellow-500">Image upload not available for this field.</div>
+                                                            ) : <div className="text-sm font-bold bg-red-100 border-2 border-red-500 text-red-700 p-2">Image upload not available for this field.</div>
                                                         )}
                                                     </div>
                                                 </div>
                                             )})}
                                     </div>
                                      <div className="flex justify-between pt-4">
-                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
-                                            <ArrowLeftIcon className="w-4 h-4" />
+                                        <button onClick={() => setCurrentStep(2)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                            <ArrowLeftIcon className="w-5 h-5" />
                                         </button>
-                                        <button onClick={() => setCurrentStep(4)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] transition-all transform hover:scale-105" aria-label={t('nextButton')}>
-                                            <ArrowRightIcon className="w-4 h-4" />
+                                        <button onClick={() => setCurrentStep(4)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#0033FF] text-[#FFFFFF] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('nextButton')}>
+                                            <ArrowRightIcon className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
@@ -834,36 +809,36 @@ const App: React.FC = () => {
 
                         {currentStep === 4 && massType !== 'dataEntry' && (
                             <StepContainer>
-                                 <div className="bg-[var(--bg-secondary)] backdrop-blur-lg p-6 rounded-2xl border border-[var(--border-primary)] text-center">
-                                    <h2 className="text-2xl font-bold text-[var(--accent-color-400)] flex items-center gap-3 justify-center mb-4">{t('finalMessage')}</h2>
+                                 <div className="bg-[#FFFFFF] p-8 border-4 border-[#000000] shadow-brutal-lg text-center">
+                                    <h2 className="text-3xl font-black uppercase mb-6 text-[#000000]">{t('finalMessage')}</h2>
                                     <button 
                                         onClick={handleGenerate} 
                                         disabled={isGenerateDisabled}
-                                        className={`w-full max-w-xs mx-auto py-3 px-6 rounded-lg text-lg font-semibold transition-all duration-300 ease-in-out flex items-center justify-center gap-2
+                                        className={`w-full max-w-sm mx-auto py-4 px-6 text-xl font-black uppercase border-4 border-[#000000] shadow-brutal transition-all flex items-center justify-center gap-2
                                             ${isGenerateDisabled 
-                                                ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
-                                                : 'bg-[var(--accent-color-500)] text-white hover:bg-[var(--accent-color-600)] shadow-lg shadow-[var(--accent-color-500)]/30 transform hover:scale-105'}`
+                                                ? 'bg-gray-400 cursor-not-allowed text-[#000000]' 
+                                                : 'bg-[#0033FF] text-[#FFFFFF] hover:-translate-y-2 hover:shadow-brutal-lg'}`
                                         }>
-                                        {isLoading ? <><LoaderIcon className="w-4 h-4" /> {t('generatingButton')}</> : <><DownloadIcon className="w-4 h-4"/> {t('generateButton')}</>}
+                                        {isLoading ? <><LoaderIcon className="w-6 h-6" /> {t('generatingButton')}</> : <><DownloadIcon className="w-6 h-6"/> {t('generateButton')}</>}
                                     </button>
-                                    <div className="flex justify-start pt-6">
-                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center p-3 rounded-lg font-semibold bg-transparent border border-[var(--border-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-primary)] transition-all" aria-label={t('backButton')}>
-                                            <ArrowLeftIcon className="w-4 h-4" />
+                                    <div className="flex justify-start pt-8">
+                                        <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center px-6 py-3 font-bold bg-[#FFFFFF] text-[#000000] border-4 border-[#000000] shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
+                                            <ArrowLeftIcon className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
-                                 <div className="h-10 text-center mt-6">
+                                 <div className="h-10 text-center mt-6 font-mono font-bold">
                                     {isLoading && (
-                                        <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
+                                        <div className="flex items-center justify-center gap-2 text-[#000000]">
                                             <LoaderIcon className="w-4 h-4"/>
                                             <p>{statusMessage}</p>
                                         </div>
                                     )}
                                     {!isLoading && statusMessage && !error && (
-                                        <p className="text-green-400">{statusMessage}</p>
+                                        <p className="text-[#000000] bg-[#0033FF]/20 border-2 border-[#0033FF] inline-block px-2">{statusMessage}</p>
                                     )}
                                     {error && (
-                                        <div className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 text-red-600 bg-red-100 border-2 border-red-600 p-2 inline-block">
                                             <AlertTriangleIcon className="w-4 h-4"/>
                                             <p>{error}</p>
                                         </div>
@@ -914,73 +889,6 @@ const App: React.FC = () => {
                     />
                 )}
             </Modal>
-
-             <style>{`
-                :root {
-                    --accent-color-100: #e0f2fe; --accent-color-200: #bae6fd; --accent-color-300: #7dd3fc; --accent-color-400: #38bdf8; --accent-color-500: #0ea5e9; --accent-color-600: #0284c7;
-                }
-                :root[data-accent="indigo"] {
-                    --accent-color-100: #e0e7ff; --accent-color-200: #c7d2fe; --accent-color-300: #a5b4fc; --accent-color-400: #818cf8; --accent-color-500: #6366f1; --accent-color-600: #4f46e5;
-                }
-                :root[data-accent="pink"] {
-                    --accent-color-100: #fce7f3; --accent-color-200: #fbcfe8; --accent-color-300: #f9a8d4; --accent-color-400: #f472b6; --accent-color-500: #ec4899; --accent-color-600: #db2777;
-                }
-                :root[data-accent="teal"] {
-                    --accent-color-100: #ccfbf1; --accent-color-200: #99f6e4; --accent-color-300: #5eead4; --accent-color-400: #2dd4bf; --accent-color-500: #14b8a6; --accent-color-600: #0d9488;
-                }
-                :root[data-accent="green"] {
-                    --accent-color-100: #dcfce7; --accent-color-200: #bbf7d0; --accent-color-300: #86efac; --accent-color-400: #4ade80; --accent-color-500: #22c55e; --accent-color-600: #16a34a;
-                }
-                 :root[data-accent="orange"] {
-                    --accent-color-100: #ffedd5; --accent-color-200: #fed7aa; --accent-color-300: #fdba74; --accent-color-400: #fb923c; --accent-color-500: #f97316; --accent-color-600: #ea580c;
-                }
-                
-                :root.dark {
-                    --bg-primary: #0f172a;
-                    --bg-secondary: rgba(30, 41, 59, 0.5);
-                    --bg-tertiary: rgba(51, 65, 85, 0.5);
-                    --bg-hover: rgba(71, 85, 105, 0.6);
-                    --text-primary: #f1f5f9;
-                    --text-secondary: #94a3b8;
-                    --border-primary: rgba(51, 65, 85, 0.7);
-                    --border-secondary: rgba(71, 85, 105, 0.5);
-                }
-                :root.light {
-                    --bg-primary: #f1f5f9;
-                    --bg-secondary: rgba(255, 255, 255, 0.5);
-                    --bg-tertiary: rgba(226, 232, 240, 0.5);
-                    --bg-hover: rgba(241, 245, 249, 0.7);
-                    --text-primary: #0f172a;
-                    --text-secondary: #475569;
-                    --border-primary: rgba(203, 213, 225, 0.6);
-                    --border-secondary: rgba(226, 232, 240, 0.7);
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes blob {
-                    0% { transform: translate(0px, 0px) scale(1); }
-                    33% { transform: translate(30px, -50px) scale(1.1); }
-                    66% { transform: translate(-20px, 20px) scale(0.9); }
-                    100% { transform: translate(0px, 0px) scale(1); }
-                }
-
-                .animate-\\[fadeIn_0\\.5s_ease-in-out\\] {
-                    animation: fadeIn 0.5s ease-in-out;
-                }
-                 .animate-\\[blob_7s_infinite\\] {
-                    animation: blob 7s infinite;
-                }
-                 .animate-\\[blob_10s_infinite_4s\\] {
-                    animation: blob 10s infinite 4s;
-                }
-                .hide-scrollbar::-webkit-scrollbar { display: none; }
-                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                body::-webkit-scrollbar { display: none; }
-                body { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
         </div>
     );
 };

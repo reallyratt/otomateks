@@ -25,7 +25,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
     return (
         <div 
-            className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity duration-300 ease-in-out
+            className={`fixed inset-0 bg-[#000000]/50 z-50 flex justify-center items-center p-4 transition-opacity duration-200
                 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
             }
             onClick={onClose}
@@ -34,25 +34,25 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             aria-labelledby="modal-title"
         >
             <div
-                className={`bg-[var(--bg-secondary)] backdrop-blur-lg border border-[var(--border-primary)] rounded-2xl shadow-xl w-full ${maxWidth} flex flex-col transition-all duration-300 ease-in-out max-h-[90vh]
-                    ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`
+                className={`bg-[#FFFFFF] border-4 border-[#000000] shadow-brutal-lg w-full ${maxWidth} flex flex-col transition-transform duration-200 max-h-[90vh]
+                    ${isOpen ? 'scale-100' : 'scale-95'}`
                 }
                 onClick={(e) => e.stopPropagation()}
             >
-                <header className="flex justify-between items-center p-4 border-b border-[var(--border-primary)] flex-shrink-0">
-                    <h2 id="modal-title" className="text-lg font-semibold text-[var(--accent-color-400)]">{title}</h2>
+                <header className="flex justify-between items-center p-4 border-b-4 border-[#000000] bg-[#F5EAD7] flex-shrink-0">
+                    <h2 id="modal-title" className="text-xl font-black uppercase tracking-tight text-[#000000]">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-full hover:bg-[var(--bg-hover)]"
+                        className="text-[#000000] hover:bg-red-500 hover:text-[#FFFFFF] border-2 border-[#000000] p-1 transition-colors shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                         aria-label="Close modal"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
                 </header>
-                <main className="p-0 overflow-hidden flex flex-col flex-grow">
+                <main className="p-0 overflow-hidden flex flex-col flex-grow bg-[#FFFFFF]">
                     {children}
                 </main>
             </div>

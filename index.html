@@ -1,15 +1,41 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF--8" />
+    <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Otomateks</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- JSZip for reading and writing .pptx files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- SheetJS for reading .xlsx files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Space Grotesk"', 'sans-serif'],
+            },
+            colors: {
+              'brutal-bg': '#F5EAD7',
+              'brutal-accent': '#0033FF',
+              'brutal-black': '#000000',
+              'brutal-white': '#FFFFFF',
+            },
+            boxShadow: {
+              'brutal': '4px 4px 0px 0px #000000',
+              'brutal-lg': '8px 8px 0px 0px #000000',
+              'brutal-sm': '2px 2px 0px 0px #000000',
+            }
+          }
+        }
+      }
+    </script>
   <script type="importmap">
 {
   "imports": {
@@ -21,7 +47,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="bg-[#F5EAD7] text-[#000000]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

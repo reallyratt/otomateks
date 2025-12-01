@@ -88,11 +88,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     };
 
     const fileTypeDescription = (accept: string) => {
-        if (accept.includes('.docx')) return 'DOCX file';
-        if (accept.includes('.pptx')) return 'PPTX file';
-        if (accept.includes('.xlsx')) return 'XLSX file';
-        if (accept.includes('image')) return 'PNG, JPG, etc.';
-        return 'File';
+        if (accept.includes('.docx')) return 'DOCX';
+        if (accept.includes('.pptx')) return 'PPTX';
+        if (accept.includes('.xlsx')) return 'XLSX';
+        if (accept.includes('image')) return 'PNG, JPG';
+        return 'FILE';
     };
 
     return (
@@ -103,66 +103,65 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300
-                    ${isDragging ? 'border-[var(--accent-color-400)] bg-[var(--accent-color-500)]/10' : 'border-[var(--border-secondary)] bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)]'}`}
+                className={`flex flex-col items-center justify-center w-full h-32 border-4 border-[#000000] cursor-pointer transition-all duration-200
+                    ${isDragging ? 'bg-[#0033FF]/20 scale-95' : 'bg-[#FFFFFF] hover:bg-[#F5EAD7] hover:-translate-y-1 hover:shadow-brutal'}`}
             >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <UploadIcon className={`w-8 h-8 mb-3 transition-colors ${isDragging ? 'text-[var(--accent-color-400)]' : 'text-[var(--text-secondary)]'}`} />
-                    <p className={`mb-2 text-sm text-center ${isDragging ? 'text-[var(--accent-color-300)]' : 'text-[var(--text-secondary)]'}`}>
-                        <span className="font-semibold text-[var(--accent-color-400)]">{label}</span> or drag and drop
+                    <UploadIcon className={`w-8 h-8 mb-3 text-[#000000]`} />
+                    <p className={`mb-2 text-sm text-center font-bold uppercase text-[#000000]`}>
+                        <span className="bg-[#000000] text-[#FFFFFF] px-1">{label}</span> or drag
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs font-mono border border-[#000000] px-1 bg-[#F5EAD7] text-[#000000]">
                         {fileTypeDescription(accept)}
                     </p>
                 </div>
                 <input id={id} type="file" className="hidden" accept={accept} multiple={multiple} onChange={handleFileChange} />
             </label>
             {files.length > 0 && (
-                <div className="mt-3 space-y-2 animate-[fadeIn_0.3s_ease-in-out]">
-                    <h4 className="text-xs font-semibold text-[var(--text-secondary)] tracking-wider uppercase">Uploaded Files</h4>
-                    <ul className="space-y-1">
+                <div className="mt-4 space-y-2">
+                    <h4 className="text-xs font-black uppercase border-b-2 border-[#000000] inline-block text-[#000000]">Uploaded Files</h4>
+                    <ul className="space-y-2">
                         {files.map(file => (
-                            <li key={file.name} className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-md text-sm group">
+                            <li key={file.name} className="flex items-center justify-between bg-[#FFFFFF] border-2 border-[#000000] p-2 shadow-brutal-sm group hover:translate-x-1 transition-transform">
                                 <button 
                                     onClick={() => handlePreview(file)}
-                                    className={`text-[var(--text-primary)] truncate pr-2 text-left ${isImage ? 'hover:text-[var(--accent-color-400)] hover:underline cursor-pointer' : ''}`}
+                                    className={`text-[#000000] font-bold truncate pr-2 text-left text-sm ${isImage ? 'hover:underline cursor-pointer' : ''}`}
                                     title={isImage ? "Click to preview" : file.name}
                                 >
                                     {file.name}
                                 </button>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2">
                                      {isImage && onFileEdit && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onFileEdit(file.name); }}
-                                            className="text-gray-400/70 hover:text-[var(--text-primary)] p-1.5 rounded-md hover:bg-gray-500/20 transition-all transform hover:scale-110 active:scale-100"
+                                            className="text-[#000000] border-2 border-[#000000] p-1 hover:bg-[#0033FF] hover:text-[#FFFFFF] transition-colors"
                                             aria-label={`Edit ${file.name}`}
                                         >
-                                            <PencilIcon className="w-4 h-4" />
+                                            <PencilIcon className="w-3 h-3" />
                                         </button>
                                     )}
                                     
                                     {isImage && onInvertToggle && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onInvertToggle(file.name); }}
-                                            className={`p-1.5 rounded-md transition-all transform hover:scale-110 active:scale-100 ${
+                                            className={`p-1 border-2 border-[#000000] transition-colors ${
                                                 invertedFiles.has(file.name)
-                                                    ? 'bg-[var(--accent-color-500)] text-white'
-                                                    : 'text-gray-400/70 hover:text-[var(--text-primary)] hover:bg-gray-500/20'
+                                                    ? 'bg-[#000000] text-[#FFFFFF]'
+                                                    : 'bg-[#FFFFFF] text-[#000000] hover:bg-[#F5EAD7]'
                                             }`}
                                             aria-label={`Invert colors for ${file.name}`}
-                                            aria-pressed={invertedFiles.has(file.name)}
                                         >
-                                            <ContrastIcon className="w-4 h-4" />
+                                            <ContrastIcon className="w-3 h-3" />
                                         </button>
                                     )}
 
                                     {onFileRemove && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onFileRemove(file.name); }}
-                                            className="text-red-500/70 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/20 transition-all transform hover:scale-110 active:scale-100"
+                                            className="text-[#FFFFFF] bg-red-600 border-2 border-[#000000] p-1 hover:bg-red-700 transition-colors"
                                             aria-label={`Remove ${file.name}`}
                                         >
-                                            <XIcon className="w-4 h-4" />
+                                            <XIcon className="w-3 h-3" />
                                         </button>
                                     )}
                                 </div>
@@ -175,23 +174,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             {/* Image Preview Modal */}
             {previewUrl && (
                 <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-[#F5EAD7]/90 p-4"
                     onClick={closePreview}
                 >
-                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+                    <div className="relative border-4 border-[#000000] bg-[#FFFFFF] p-2 shadow-brutal-lg max-w-[95vw] max-h-[95dvh] flex flex-col items-center">
                          <button 
                             onClick={closePreview}
-                            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition z-50 bg-black/50 rounded-full"
+                            className="absolute -top-6 -right-6 p-2 text-[#FFFFFF] bg-[#000000] border-2 border-[#FFFFFF] shadow-[2px_2px_0px_#000000] hover:scale-110 transition z-50"
                          >
-                            <XIcon className="w-8 h-8" />
+                            <XIcon className="w-6 h-6" />
                          </button>
                          <img 
                             src={previewUrl} 
                             alt="Preview" 
-                            className="max-w-[95vw] max-h-[95dvh] object-contain rounded-lg shadow-2xl"
+                            className="max-w-full max-h-[85dvh] w-auto h-auto object-contain border-2 border-[#000000]"
                             onClick={(e) => e.stopPropagation()} 
                         />
-                         <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium bg-black/50 px-3 py-1 rounded-full">{previewFileName}</p>
+                         <p className="mt-2 text-[#000000] font-mono font-bold text-sm bg-[#0033FF] text-[#FFFFFF] px-2 border-2 border-[#000000]">{previewFileName}</p>
                     </div>
                 </div>
             )}
