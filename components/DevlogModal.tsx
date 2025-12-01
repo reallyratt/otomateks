@@ -1,96 +1,89 @@
-import React from 'react';
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="space-y-3">
-        <h3 className="text-xl font-black uppercase text-brutal-text border-b-4 border-brutal-border pb-2 mb-3 inline-block">
-            {title}
-        </h3>
-        <div className="text-brutal-text space-y-4 text-sm leading-relaxed">
-            {children}
-        </div>
+import React from 'react';
+import { SlidersIcon } from './icons';
+
+const UpdateItem: React.FC<{ version: string; title: string; desc: string }> = ({ version, title, desc }) => (
+    <div className="border-l-4 border-brutal-border pl-4 ml-1">
+        <h4 className="font-black text-sm uppercase bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-1">
+            Update {version}
+        </h4>
+        <h5 className="font-bold text-sm mb-1">{title}</h5>
+        <p className="text-xs text-brutal-text/80">{desc}</p>
     </div>
 );
 
-const Code: React.FC<{children: React.ReactNode}> = ({ children }) => <code className="bg-brutal-bg px-1.5 py-1 border border-brutal-border text-brutal-text font-mono text-xs">{children}</code>;
-const Highlight: React.FC<{children: React.ReactNode}> = ({ children }) => <span className="bg-brutal-border text-brutal-bg px-1 font-bold">{children}</span>;
-
-
 export const DevlogModal: React.FC = () => {
     return (
-        <div className="text-sm text-brutal-text space-y-8">
-            <div className="text-center bg-brutal-accent text-brutal-white p-4 border-4 border-brutal-border shadow-brutal">
-                <h2 className="text-2xl font-black uppercase">
-                    Otomateks: The Journey
-                </h2>
-                <p className="mt-2 font-mono">A look behind the scenes of the Mass Text Automation tool.</p>
-            </div>
-
-            <Section title="Project Genesis & Core Tech">
+        <div className="text-sm text-brutal-text space-y-6">
+            <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal text-justify leading-relaxed space-y-4">
                 <p>
-                    <Highlight>Otomateks</Highlight> was born from a simple need: to streamline the creation of weekly Mass presentation slides for Komsos Pugeran. The process was manual, repetitive, and prone to errors. The goal was to build a web app where a user could input all the necessary texts and images, upload a standard PowerPoint template, and receive a perfectly formatted, ready-to-use presentation in seconds.
+                    <span className="font-bold bg-brutal-accent text-brutal-white px-1">Otomateks</span> adalah otomatisasi teks misa yang dikembangkan untuk membantu anggota Divisi Teks Misa KOMSOS Pugeran. Semuanya berawal dari keresahan sederhana. Permintaan teks misa yang sering datang mendadak, jumlah anggota yang sedikit, dan keterbatasan perangkat pada jam-jam yang mendadak tersebut. Otomateks hadir sebagai solusi agar pekerjaan yang sebelumnya repetitif dan lama bisa diselesaikan dengan cepat dan efisien.
                 </p>
                 <p>
-                    The entire application is built on modern web technologies:
+                    Otomateks bekerja dengan cara user mengolah teks panduan dan gambar, lalu memproses semuanya secara otomatis menjadi PPt teks misa yang siap digunakan (tetap melalui tahap quality control) secara otomatis. Sistem ini dirancang agar dapat diakses dari berbagai perangkat, termasuk smartphone, sehingga siap membantu kapan pun anggota bertugas.
                 </p>
-                <ul className="list-disc list-inside pl-4 space-y-2">
-                    <li><Highlight>React & TypeScript:</Highlight> For a robust, type-safe, and component-based user interface.</li>
-                    <li><Highlight>Tailwind CSS:</Highlight> For rapid, utility-first styling, enabling the creation of a clean and customizable design system.</li>
-                    <li><Highlight>JSZip:</Highlight> This is the secret sauce. A <Code>.pptx</Code> file is essentially a zip archive containing a collection of XML and media files. JSZip allows us to unzip the uploaded template in the browser, directly manipulate the XML content of the slides, and then re-zip it into a new <Code>.pptx</Code> file for download. No server-side processing needed!</li>
-                </ul>
-            </Section>
-            
-            <Section title="Key Feature Milestones">
-                <div>
-                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V1: The Templating Engine</h4>
-                    <p>The core challenge was replacing placeholder text within the PowerPoint template. The system was designed to find any text enclosed in double curly braces, like <Code>{`{{bacaan1Text}}`}</Code>, and substitute it with the corresponding text from the web form. This formed the foundation of the entire automation process.</p>
-                </div>
-                 <div>
-                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V2: Advanced Text Handling & Slide Duplication</h4>
-                    <p>A major hurdle appeared with long texts, such as the readings or homilies, which wouldn't fit on a single slide. This led to the development of the "smart chunking" and "slide duplication" logic.</p>
-                    <p>
-                        When a text exceeds a certain character limit, the system automatically:
-                    </p>
-                     <ol className="list-decimal list-inside pl-4 space-y-2 mt-2">
-                        <li>Splits the text into reasonably sized chunks, being careful to break only at spaces.</li>
-                        <li>Adds required liturgical endings (e.g., "Demikianlah Sabda Tuhan...") to the final chunk.</li>
-                        <li>Places the first chunk into the original slide from the template.</li>
-                        <li>Dynamically <Highlight>clones</Highlight> that slide for each additional chunk of text.</li>
-                        <li>Intelligently modifies the core <Code>presentation.xml</Code> and related files to insert these new slides seamlessly into the presentation order.</li>
-                    </ol>
-                     <p>This was the most complex part of the project, turning a simple text replacer into a powerful document generator.</p>
-                </div>
-
-                <div>
-                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V3: UI/UX Revolution</h4>
-                    <p>With the core logic in place, focus shifted to user experience. The single, long form was replaced with a guided, multi-step process. This is when the customization features were introduced:</p>
-                     <ul className="list-disc list-inside pl-4 space-y-2">
-                        <li><Highlight>Internationalization (i18n):</Highlight> The entire app's text was moved into a centralized translation file, allowing for an easy switch between English and Indonesian.</li>
-                        <li><Highlight>Dynamic Theming:</Highlight> Using CSS Custom Properties (variables), I built a system for Light/Dark modes and user-selectable Accent Colors. This provides a personalized feel without sacrificing performance.</li>
-                         <li><Highlight>Frosted Glass UI:</Highlight> A complete visual overhaul introduced the semi-transparent, blurred background effect for a modern and cohesive aesthetic.</li>
-                    </ul>
-                </div>
-                 <div>
-                    <h4 className="font-bold text-base bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-2">V4: Quality of Life & Media</h4>
-                    <p>The final touches involved adding more user-friendly features. An image upload option was added for sections like songs, along with a custom drag-and-drop file component. Comprehensive guides and this very Devlog were created to make the app as easy to use as possible.</p>
-                </div>
-            </Section>
-
-            <Section title="What's Next?">
-                <p>The journey isn't over! Future plans include:</p>
-                 <ul className="list-disc list-inside pl-4 space-y-2">
-                    <li>Activating the other Mass Types (Manten, Paskah, Natal) with their unique templates and logic.</li>
-                    <li>Implementing true image replacement within templates.</li>
-                    <li>Continuously refining the UI and improving performance.</li>
-                </ul>
-            </Section>
-
-             <div className="text-center pt-4 border-t-4 border-brutal-border">
-                <p>Thank you for using Otomateks and for your interest in its development!</p>
-                  <p className="mt-4 text-xs font-bold">
-                    - <a href="https://www.instagram.com/reallyratt" target="_blank" rel="noopener noreferrer" className="text-brutal-accent hover:bg-brutal-accent hover:text-brutal-white px-1">@reallyratt</a>
+                <p>
+                    Jika Otomateks berhasil mencapai tujuannya, pembuatan teks misa kurang dari 10 menit, produktivitas meningkat, dan hasil yang konsisten. Maka proyek ini telah menyelesaikan misi utamanya yaitu mendukung pelayanan dan mempermudah tugas.
                 </p>
             </div>
 
+            <details className="group bg-brutal-surface border-4 border-brutal-border">
+                <summary className="font-black uppercase p-4 cursor-pointer hover:bg-brutal-bg transition-colors flex justify-between items-center list-none">
+                    <div className="flex items-center gap-2">
+                         <SlidersIcon className="w-5 h-5" />
+                         <span>Dev Log History</span>
+                    </div>
+                    <span className="border-2 border-brutal-border p-1 group-open:bg-brutal-accent group-open:text-brutal-white transition-colors">
+                        <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                    </span>
+                </summary>
+                <div className="p-4 border-t-4 border-brutal-border bg-brutal-bg space-y-6">
+                    <UpdateItem 
+                        version="1" 
+                        title="Basic Text Field Integration" 
+                        desc="The foundation of Otomateks, enabling dynamic text replacement for titles and body text using the A/B placeholder system." 
+                    />
+                    <UpdateItem 
+                        version="2" 
+                        title="Weekly Mass (Mingguan) Expansion" 
+                        desc="Comprehensive support for Sunday masses, adding specific fields for Second Readings, Creed, and more complex liturgical structures." 
+                    />
+                    <UpdateItem 
+                        version="3" 
+                        title="Paragraphify Tool" 
+                        desc="A quality-of-life feature to automatically fix broken line breaks from PDF copy-pastes, creating clean paragraphs instantly." 
+                    />
+                    <UpdateItem 
+                        version="4" 
+                        title="Daily Mass (Harian) Support" 
+                        desc="Tailored configurations for Daily Masses, streamlining the workflow by hiding unnecessary fields like the Second Reading." 
+                    />
+                    <UpdateItem 
+                        version="5" 
+                        title="Image Field Insertion" 
+                        desc="Users can now upload images directly into placeholders (C codes), allowing for sheet music and other visual elements to be embedded seamlessly." 
+                    />
+                    <UpdateItem 
+                        version="6" 
+                        title="Multi Crop & Invert Image" 
+                        desc="Advanced image editor tools allowing users to split single images across multiple slides and invert colors for better contrast in dark templates." 
+                    />
+                    <UpdateItem 
+                        version="7" 
+                        title="Misa Memule & Special Fields" 
+                        desc="Added dedicated support for Commemoration Masses, including specific fields like 'Pengantar' and custom Thumbnail placeholders." 
+                    />
+                    <UpdateItem 
+                        version="8" 
+                        title="New Brutalist UI" 
+                        desc="A complete visual overhaul embracing a high-contrast, raw aesthetic with bold borders and sharp shadows for better clarity and style." 
+                    />
+                </div>
+            </details>
+
+            <div className="text-center pt-4 font-bold uppercase text-xs tracking-wider">
+                Made with Love by <a href="https://www.instagram.com/reallyratt" target="_blank" rel="noopener noreferrer" className="bg-brutal-accent text-brutal-white px-1 hover:underline">@reallyratt</a>
+            </div>
         </div>
     );
 };

@@ -53,7 +53,7 @@ export const InfoIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export const ParagraphIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M13 12a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-6z"></path><path d="M17 6h-6a4 4 0 0 0-4 4v9"></path><path d="M7 19h10"></path></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/></svg>
 );
 
 export const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (

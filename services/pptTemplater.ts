@@ -437,7 +437,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         }
 
         const slidePath = `ppt/${rel.getAttribute('Target')}`;
-        const slideXmlStr = await zip.file(slidePath).async('string');
+        let slideXmlStr = await zip.file(slidePath).async('string');
         const slideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
         
         const slideRelsPath = slidePath.replace('slides/', 'slides/_rels/') + '.rels';
@@ -448,53 +448,62 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         const { key: imageKey, shape: imageShape } = findImagePlaceholder(slideXmlDoc);
         const images = (imageKey && data[imageKey] && Array.isArray(data[imageKey])) ? data[imageKey] as string[] : [];
 
-        if (images.length > 0 && imageShape) {
-            for (let i = 0; i < images.length; i++) {
-                const isOriginalSlide = i === 0;
-                const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
-                const currentSlideRelsXmlDoc = isOriginalSlide ? slideRelsXmlDoc : parser.parseFromString(slideRelsStr, 'application/xml');
-                const currentShape = isOriginalSlide ? imageShape : findImagePlaceholder(currentSlideXmlDoc).shape;
+        if (imageKey && imageShape) {
+             if (images.length > 0) {
+                for (let i = 0; i < images.length; i++) {
+                    const isOriginalSlide = i === 0;
+                    const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
+                    const currentSlideRelsXmlDoc = isOriginalSlide ? slideRelsXmlDoc : parser.parseFromString(slideRelsStr, 'application/xml');
+                    const currentShape = isOriginalSlide ? imageShape : findImagePlaceholder(currentSlideXmlDoc).shape;
 
-                if (currentShape) {
-                    const imageBase64 = images[i];
-                    const imageRId = await addImageToPackage(zip, currentSlideRelsXmlDoc, contentTypesXmlDoc, imageBase64);
-                    await modifyShapeForImage(currentShape, imageRId, imageBase64);
-                }
-                
-                replaceSimplePlaceholders(currentSlideXmlDoc, data, null);
-                
-                if (isOriginalSlide) {
-                    zip.file(slidePath, serializer.serializeToString(currentSlideXmlDoc));
-                    zip.file(slideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
-                    newSlideIdNodes.push(sldId.cloneNode(true));
-                } else {
-                    const newSlideNum = nextAvailableSlideNum++;
-                    const newSlideId = nextAvailableSlideId++;
-                    const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
-                    const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
-                    const newSlideRelsPath = newSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
-
-                    zip.file(newSlidePath, serializer.serializeToString(currentSlideXmlDoc));
-                    zip.file(newSlideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
-
-                    const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
-                    newOverride.setAttribute('PartName', `/${newSlidePath}`);
-                    newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
-                    contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                    if (currentShape) {
+                        const imageBase64 = images[i];
+                        const imageRId = await addImageToPackage(zip, currentSlideRelsXmlDoc, contentTypesXmlDoc, imageBase64);
+                        await modifyShapeForImage(currentShape, imageRId, imageBase64);
+                    }
                     
-                    const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
-                    newPresRel.setAttribute('Id', newPresRelId);
-                    newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
-                    newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
-                    presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                    replaceSimplePlaceholders(currentSlideXmlDoc, data, null);
                     
-                    const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
-                    newSldIdNode.setAttribute('id', String(newSlideId));
-                    newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
-                    newSlideIdNodes.push(newSldIdNode);
+                    if (isOriginalSlide) {
+                        zip.file(slidePath, serializer.serializeToString(currentSlideXmlDoc));
+                        zip.file(slideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
+                        newSlideIdNodes.push(sldId.cloneNode(true));
+                    } else {
+                        const newSlideNum = nextAvailableSlideNum++;
+                        const newSlideId = nextAvailableSlideId++;
+                        const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                        const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                        const newSlideRelsPath = newSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
+
+                        zip.file(newSlidePath, serializer.serializeToString(currentSlideXmlDoc));
+                        zip.file(newSlideRelsPath, serializer.serializeToString(currentSlideRelsXmlDoc));
+
+                        const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                        newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                        newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                        contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                        
+                        const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                        newPresRel.setAttribute('Id', newPresRelId);
+                        newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                        newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                        presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                        
+                        const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                        newSldIdNode.setAttribute('id', String(newSlideId));
+                        newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                        newSlideIdNodes.push(newSldIdNode);
+                    }
                 }
-            }
-            continue;
+                continue;
+             } else {
+                 // Logic to remove the shape containing the placeholder if no images are provided
+                 if (imageShape.parentNode) {
+                     imageShape.parentNode.removeChild(imageShape);
+                     // Update slideXmlStr so that if text splitting happens below, the clones also lack the placeholder
+                     slideXmlStr = serializer.serializeToString(slideXmlDoc);
+                 }
+             }
         }
 
         // Check for Text Splitting (B keys)

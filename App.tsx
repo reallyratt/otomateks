@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Language, PresentationData, MassType } from './types';
 import { translations } from './i18n';
@@ -23,11 +24,18 @@ type FormField = {
     types: InputType[];
     optional?: boolean;
     section?: HarianSections;
+    onlyFor?: MassType[];
 };
 
-// Updated Form Config: Fixed keys for Komuni 3 (A32) and Penutup (A34) to match standard numbering
+// Updated Form Config: Added Thumbnail A (C36) and Thumbnail B (C37)
 const formConfig: FormField[] = [
+    { label: 'Thumbnail A', titleKey: 'A36', imageKey: 'C36', types: ['multi-image'], onlyFor: ['memule'] },
+
     { label: 'Lagu Pembuka', titleKey: 'A01', textKey: 'B01', imageKey: 'C01', types: ['text', 'multi-image'], section: 'showLaguPembuka' },
+    
+    // Misa Memule Specific Field
+    { label: 'Pengantar', titleKey: 'A35', textKey: 'B35', types: ['text'], onlyFor: ['memule'] },
+
     { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02', types: ['text'], section: 'showTuhanKasihanilahKami' },
     { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03', types: ['text'], section: 'showTuhanKasihanilahKami' },
     { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04', types: ['text'], section: 'showTuhanKasihanilahKami' },
@@ -64,9 +72,12 @@ const formConfig: FormField[] = [
     { label: 'Lagu Komuni III', titleKey: 'A32', textKey: 'B32', imageKey: 'C32', types: ['text', 'multi-image'], optional: true, section: 'showLaguKomuni' },
     { label: 'Doa Sesudah Komuni', titleKey: 'A33', textKey: 'B33', types: ['text'], section: 'showDoaSesudahKomuni' },
     { label: 'Lagu Penutup', titleKey: 'A34', textKey: 'B34', imageKey: 'C34', types: ['text', 'multi-image'], section: 'showLaguPenutup' },
+    
+    { label: 'Thumbnail B', titleKey: 'A37', imageKey: 'C37', types: ['multi-image'], onlyFor: ['memule'] },
 ];
 
 const defaultTitlesIndonesia: PresentationData = {
+    A36: 'Thumbnail A',
     A01: '(umat berdiri) NYANYIAN PERARAKAN MASUK',
     A02: 'TUHAN KASIHANILAH KAMI',
     A03: 'TUHAN KASIHANILAH KAMI',
@@ -101,9 +112,12 @@ const defaultTitlesIndonesia: PresentationData = {
     A32: '(umat duduk) MADAH PUJIAN',
     A33: '(umat berdiri) DOA SESUDAH KOMUNI',
     A34: '(umat berdiri) NYANYIAN PERARAKAN KELUAR',
+    A35: 'PENGANTAR',
+    A37: 'Thumbnail B',
 };
 
 const defaultTitlesJawa: PresentationData = {
+    A36: 'Thumbnail A',
     A01: '(umat jumeneng) KIDUNG ARAK-ARAKAN MLEBET',
     A02: 'GUSTI NYUWUN KAWELASAN',
     A03: 'GUSTI NYUWUN KAWELASAN',
@@ -138,6 +152,8 @@ const defaultTitlesJawa: PresentationData = {
     A32: '(umat lenggah) KIDUNG PUJIAN',
     A33: '(umat jumeneng) SEMBAHYANGAN BAKDA KOMUNI',
     A34: '(umat jumeneng) KIDUNG PANUTUP',
+    A35: 'PENGANTAR',
+    A37: 'Thumbnail B',
 };
 
 
@@ -263,7 +279,7 @@ const App: React.FC = () => {
             category: t('misaKhusus'),
             options: [
                 { id: 'manten', label: 'Misa Manten', enabled: false },
-                { id: 'memule', label: 'Misa Memule', enabled: false },
+                { id: 'memule', label: 'Misa Memule', enabled: true },
             ],
         },
         {
@@ -718,6 +734,8 @@ const App: React.FC = () => {
                                     <div className="space-y-6">
                                         {formConfig
                                             .filter(field => {
+                                                if (field.onlyFor && !field.onlyFor.includes(massType)) return false;
+
                                                 if (massType !== 'harian') return true;
                                                 return field.section ? harianOptionalSections[field.section] : true;
                                             })
@@ -738,10 +756,14 @@ const App: React.FC = () => {
                                                         {field.types.length > 1 && (
                                                             <div className="flex items-center gap-2">
                                                                 {field.types.includes('text') && (
-                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode">TEXT</button>
+                                                                    <button onClick={() => handleModeChange(uniqueFieldId, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode">
+                                                                        <TextIcon className="w-4 h-4" />
+                                                                    </button>
                                                                 )}
                                                                 {(field.types.includes('image') || field.types.includes('multi-image')) && (
-                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode">IMG</button>
+                                                                     <button onClick={() => handleModeChange(uniqueFieldId, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode">
+                                                                        <ImageIcon className="w-4 h-4" />
+                                                                     </button>
                                                                 )}
                                                             </div>
                                                         )}
