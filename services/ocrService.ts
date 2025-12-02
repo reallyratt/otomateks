@@ -1,46 +1,28 @@
 
-export const performOcr = async (file: File, apiKey: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const base64Content = (reader.result as string).split(',')[1];
+declare const Tesseract: any;
+
+export const performOcr = async (files: File[]): Promise<string> => {
+    let fullText = '';
+    
+    // Process files sequentially
+    for (const file of files) {
+        try {
+            const result = await Tesseract.recognize(
+                file,
+                'ind', // 'ind' for Indonesian, you can add 'eng' like 'ind+eng' if needed
+                {
+                    // logger: (m: any) => console.log(m) // Optional: for debugging
+                }
+            );
             
-            const payload = {
-                requests: [
-                    {
-                        image: { content: base64Content },
-                        features: [{ type: 'DOCUMENT_TEXT_DETECTION' }]
-                    }
-                ]
-            };
+            const { data: { text } } = result;
+            fullText += text.trim() + '\n\n';
+            
+        } catch (error) {
+            console.error("OCR Error on file:", file.name, error);
+            throw new Error(`Failed to scan ${file.name}`);
+        }
+    }
 
-            try {
-                const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                
-                if (data.error) {
-                    reject(new Error(data.error.message || 'Vision API Error'));
-                    return;
-                }
-
-                if (data.responses && data.responses[0] && data.responses[0].fullTextAnnotation) {
-                    resolve(data.responses[0].fullTextAnnotation.text);
-                } else if (data.responses && data.responses[0] && data.responses[0].textAnnotations) {
-                    resolve(data.responses[0].textAnnotations[0].description);
-                } else {
-                    resolve(''); // No text found
-                }
-
-            } catch (error) {
-                reject(error);
-            }
-        };
-        reader.onerror = (error) => reject(error);
-    });
+    return fullText.trim();
 };

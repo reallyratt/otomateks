@@ -157,7 +157,6 @@ const defaultTitlesJawa: PresentationData = {
     A37: 'Thumbnail B',
 };
 
-const GOOGLE_API_KEY = "AIzaSyBcgO-R9gfvk2oD0-W6teFJWTc_dVKfh6M";
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -256,7 +255,6 @@ const App: React.FC = () => {
         showLaguPenutup: false,
     });
     
-
     // Update CSS Variable when accentColor changes
     useEffect(() => {
         document.documentElement.style.setProperty('--color-accent', accentColor);
@@ -537,13 +535,13 @@ const App: React.FC = () => {
 
     const handleOcrInsert = (text: string) => {
         if (ocrTargetKey) {
-             setPresentationData(prev => {
+            setPresentationData(prev => {
                 const currentText = (prev as any)[ocrTargetKey] || '';
                 return { ...prev, [ocrTargetKey]: currentText + (currentText ? '\n\n' : '') + text };
             });
-            setStatusMessage("Text inserted successfully!");
-            setTimeout(() => setStatusMessage(''), 3000);
         }
+        setIsOcrModalOpen(false);
+        setOcrTargetKey(null);
     };
 
 
@@ -950,12 +948,16 @@ const App: React.FC = () => {
                     />
                 )}
             </Modal>
-            
-             <Modal isOpen={isOcrModalOpen} onClose={() => setIsOcrModalOpen(false)} title="Image to Text (OCR)" maxWidth="max-w-4xl">
+
+            <Modal
+                isOpen={isOcrModalOpen}
+                onClose={() => setIsOcrModalOpen(false)}
+                title="OCR Tool"
+                maxWidth="max-w-4xl"
+            >
                 <OcrModal 
                     onInsert={handleOcrInsert} 
-                    onClose={() => setIsOcrModalOpen(false)}
-                    apiKey={GOOGLE_API_KEY}
+                    onClose={() => setIsOcrModalOpen(false)} 
                 />
             </Modal>
         </div>

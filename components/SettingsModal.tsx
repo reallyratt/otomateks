@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GlobeIcon, SunIcon, MoonIcon, PaletteIcon } from './icons';
+import { GlobeIcon, SunIcon, MoonIcon, PaletteIcon, ScanIcon } from './icons';
 
 interface SettingsModalProps {
     theme: 'light' | 'dark';
