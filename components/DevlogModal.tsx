@@ -2,13 +2,17 @@
 import React from 'react';
 import { SlidersIcon } from './icons';
 
-const UpdateItem: React.FC<{ version: string; title: string; desc: string }> = ({ version, title, desc }) => (
+const UpdateItem: React.FC<{ version: string; title: string; items: string[] }> = ({ version, title, items }) => (
     <div className="border-l-4 border-brutal-border pl-4 ml-1">
         <h4 className="font-black text-sm uppercase bg-brutal-bg text-brutal-text inline-block px-1 border border-brutal-border mb-1">
             Update {version}
         </h4>
         <h5 className="font-bold text-sm mb-1">{title}</h5>
-        <p className="text-xs text-brutal-text/80">{desc}</p>
+        <ul className="list-disc list-inside text-xs text-brutal-text/80 space-y-0.5">
+            {items.map((item, index) => (
+                <li key={index}>{item}</li>
+            ))}
+        </ul>
     </div>
 );
 
@@ -40,43 +44,69 @@ export const DevlogModal: React.FC = () => {
                 <div className="p-4 border-t-4 border-brutal-border bg-brutal-bg space-y-6">
                     <UpdateItem 
                         version="1" 
-                        title="Basic Text Field Integration" 
-                        desc="The foundation of Otomateks, enabling dynamic text replacement for titles and body text using the A/B placeholder system." 
+                        title="Text Field" 
+                        items={[
+                            "Basic text field with chunk system",
+                            "Added Paragraphify",
+                            "Otomateks generation system"
+                        ]} 
                     />
                     <UpdateItem 
                         version="2" 
-                        title="Weekly Mass (Mingguan) Expansion" 
-                        desc="Comprehensive support for Sunday masses, adding specific fields for Second Readings, Creed, and more complex liturgical structures." 
+                        title="Structures" 
+                        items={[
+                            "Added clean structures configuration, setup, workspace, and generation",
+                            "Added a top corner button that shows tutorial, setting, and devlog",
+                            "Added tutorial page",
+                            "Added setting page accent, theme",
+                            "Added devlog page"
+                        ]} 
                     />
                     <UpdateItem 
                         version="3" 
-                        title="Paragraphify Tool" 
-                        desc="A quality-of-life feature to automatically fix broken line breaks from PDF copy-pastes, creating clean paragraphs instantly." 
+                        title="Tipe Misa part I" 
+                        items={[
+                            "Added 'Misa Mingguan' workspace",
+                            "Added 'Misa Harian' workspace",
+                            "Added 'Bahasa Misa' setting",
+                            "Added automatic text for Bahasa Indonesia and Bahasa Jawa",
+                            "Updated Otomateks generation system",
+                            "Updated tutorial page"
+                        ]} 
                     />
                     <UpdateItem 
                         version="4" 
-                        title="Daily Mass (Harian) Support" 
-                        desc="Tailored configurations for Daily Masses, streamlining the workflow by hiding unnecessary fields like the Second Reading." 
+                        title="Image Insertion" 
+                        items={[
+                            "Added image insertion on vary parts of text fields",
+                            "Added remove button on uploaded files",
+                            "Added Invert Image button on image files",
+                            "Added preview image when the file name clicked",
+                            "Added MultiCrop button on image files",
+                            "Added Crop Area system",
+                            "Added Multiple Slides system",
+                            "Updated Otomateks generation system"
+                        ]} 
                     />
                     <UpdateItem 
                         version="5" 
-                        title="Image Field Insertion" 
-                        desc="Users can now upload images directly into placeholders (C codes), allowing for sheet music and other visual elements to be embedded seamlessly." 
+                        title="Fixed UI" 
+                        items={[
+                            "Updated UI from frostglass to Brutalist UI",
+                            "Updated Setting page",
+                            "Updated Tutorial page",
+                            "Updated Devlog page (renamed to About)"
+                        ]} 
                     />
                     <UpdateItem 
                         version="6" 
-                        title="Multi Crop & Invert Image" 
-                        desc="Advanced image editor tools allowing users to split single images across multiple slides and invert colors for better contrast in dark templates." 
-                    />
-                    <UpdateItem 
-                        version="7" 
-                        title="Misa Memule & Special Fields" 
-                        desc="Added dedicated support for Commemoration Masses, including specific fields like 'Pengantar' and custom Thumbnail placeholders." 
-                    />
-                    <UpdateItem 
-                        version="8" 
-                        title="New Brutalist UI" 
-                        desc="A complete visual overhaul embracing a high-contrast, raw aesthetic with bold borders and sharp shadows for better clarity and style." 
+                        title="Tipe Misa part II" 
+                        items={[
+                            "Added 'Misa Memule' workspace",
+                            "Added 'Misa Manten' workspace",
+                            "Added text editor (bold, italic, underline)",
+                            "Updated Otomateks generation system"
+                        ]} 
                     />
                 </div>
             </details>

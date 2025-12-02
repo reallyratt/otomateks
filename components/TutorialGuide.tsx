@@ -2,7 +2,7 @@
 import React from 'react';
 import { 
     CogIcon, DocumentIcon, ImageIcon, ParagraphIcon, PresentationIcon, TextIcon, 
-    DownloadIcon, UploadIcon, PencilIcon, ContrastIcon, TrashIcon, CropIcon, PlusIcon 
+    DownloadIcon, UploadIcon, PencilIcon, ContrastIcon, TrashIcon, CropIcon, PlusIcon, ScanIcon, ArrowUpIcon, ArrowDownIcon
 } from './icons';
 import { MassType } from '../types';
 import { tutorialContent } from '../i18n';
@@ -14,7 +14,7 @@ interface TutorialGuideProps {
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
     <div className="space-y-4 pt-4">
-        <h3 className="text-xl font-black uppercase text-brutal-text flex items-center gap-3 border-b-4 border-brutal-border pb-2">
+        <h3 className="text-xl font-black uppercase text-brutal-text flex items-center gap-3 border-b-4 border-brutal-border pb-2 text-justify">
             {icon}
             {title}
         </h3>
@@ -44,20 +44,36 @@ const VisualBox: React.FC<{children: React.ReactNode; label?: string}> = ({ chil
     </div>
 );
 
-const renderTextWithParagraphIcon = (text: string) => {
-    const parts = text.split('Paragraphify');
-    if (parts.length >= 2) {
-         return (
-             <p>
-                 {parts[0]}Paragraphify
-                 <span className="inline-flex items-center justify-center mx-1 align-text-bottom">
-                     <ParagraphIcon className="w-4 h-4 border border-brutal-border p-[1px] bg-brutal-bg"/>
-                 </span>
-                 {parts.slice(1).join('Paragraphify')}
-             </p>
-         );
-    }
-    return <p>{text}</p>;
+const renderEnrichedText = (text: string) => {
+    const parts = text.split(/(Paragraphify|Image-to-Text)/g);
+    
+    return (
+        <p>
+            {parts.map((part, index) => {
+                if (part === 'Paragraphify') {
+                    return (
+                        <span key={index}>
+                            Paragraphify
+                            <span className="inline-flex items-center justify-center mx-1 align-text-bottom">
+                                <ParagraphIcon className="w-4 h-4 border border-brutal-border p-[1px] bg-brutal-bg"/>
+                            </span>
+                        </span>
+                    );
+                }
+                if (part === 'Image-to-Text') {
+                    return (
+                        <span key={index}>
+                            Image-to-Text
+                            <span className="inline-flex items-center justify-center mx-1 align-text-bottom">
+                                <ScanIcon className="w-4 h-4 border border-brutal-border p-[1px] bg-brutal-bg"/>
+                            </span>
+                        </span>
+                    );
+                }
+                return <span key={index}>{part}</span>;
+            })}
+        </p>
+    );
 };
 
 export const TutorialGuide: React.FC<TutorialGuideProps> = ({ appLanguage }) => {
@@ -177,7 +193,7 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ appLanguage }) => 
                     </VisualBox>
 
                     <h5 className="font-bold border-b border-brutal-border inline-block mt-2 mb-1">{content.step3ParaTitle}</h5>
-                    {renderTextWithParagraphIcon(content.step3ParaDesc)}
+                    {renderEnrichedText(content.step3ParaDesc)}
                     <VisualBox label="Before / After">
                         <div className="grid grid-cols-2 gap-4 w-full text-[10px] font-mono">
                             <div className="border border-brutal-border p-2 bg-brutal-bg">
@@ -192,6 +208,42 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ appLanguage }) => 
                             </div>
                         </div>
                     </VisualBox>
+                    
+                    <h5 className="font-bold border-b border-brutal-border inline-block mt-4 mb-1">{content.step3OcrTitle}</h5>
+                    {renderEnrichedText(content.step3OcrDesc)}
+                    <VisualBox label="Image-to-Text">
+                         <div className="w-full max-w-xs bg-brutal-surface border-2 border-brutal-border p-2 space-y-2 pointer-events-none select-none">
+                            <div className="border-b-2 border-brutal-border pb-1">
+                                <span className="text-[10px] font-bold uppercase bg-brutal-accent text-brutal-white px-1 border border-brutal-border">UPLOAD IMAGE. BOOM! TEXT.</span>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between border border-brutal-border p-1 text-[10px] bg-brutal-bg">
+                                    <span>image_1.png</span>
+                                    <div className="flex gap-0.5">
+                                        <div className="w-3 h-3 border border-brutal-border flex items-center justify-center"><ArrowUpIcon className="w-2 h-2"/></div>
+                                        <div className="w-3 h-3 border border-brutal-border flex items-center justify-center"><ArrowDownIcon className="w-2 h-2"/></div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between border border-brutal-border p-1 text-[10px] bg-brutal-bg">
+                                    <span>image_2.png</span>
+                                    <div className="flex gap-0.5">
+                                        <div className="w-3 h-3 border border-brutal-border flex items-center justify-center"><ArrowUpIcon className="w-2 h-2"/></div>
+                                        <div className="w-3 h-3 border border-brutal-border flex items-center justify-center"><ArrowDownIcon className="w-2 h-2"/></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="w-full py-1 bg-brutal-accent text-brutal-white border border-brutal-border text-[10px] font-bold text-center flex items-center justify-center gap-1">
+                                <ScanIcon className="w-3 h-3"/> SCAN IMAGES
+                            </div>
+                             <div className="h-10 w-full bg-brutal-bg border border-brutal-border p-1 font-mono text-[8px]">
+                                Scanned text result...
+                            </div>
+                             <div className="w-full py-1 bg-brutal-surface text-brutal-text border border-brutal-border text-[10px] font-bold text-center">
+                                INSERT TEXT
+                            </div>
+                         </div>
+                    </VisualBox>
+
                 </SubSection>
 
                 <SubSection title={content.step3SubBTitle}>
@@ -203,10 +255,10 @@ export const TutorialGuide: React.FC<TutorialGuideProps> = ({ appLanguage }) => 
                                 <span className="font-bold text-xs uppercase">Upload Image</span>
                             </div>
                         </div>
-                        <div className="w-full mt-2 bg-brutal-surface border-2 border-brutal-border p-2 flex justify-between items-center shadow-brutal-sm">
+                        <div className="w-full mt-2 bg-brutal-surface border-2 border-brutal-border p-2 flex justify-between items-center shadow-brutal-sm pointer-events-none select-none">
                             <span className="font-mono text-xs truncate">lagu_misa.png</span>
                             <div className="flex gap-1">
-                                <div className="p-1 border border-brutal-border hover:bg-brutal-accent hover:text-white"><PencilIcon className="w-3 h-3"/></div>
+                                <div className="p-1 border border-brutal-border hover:bg-brutal-accent/10"><PencilIcon className="w-3 h-3"/></div>
                                 <div className="p-1 border border-brutal-border hover:bg-brutal-bg"><ContrastIcon className="w-3 h-3"/></div>
                                 <div className="p-1 border border-brutal-border bg-red-500 text-white"><TrashIcon className="w-3 h-3"/></div>
                             </div>

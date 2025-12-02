@@ -878,7 +878,7 @@ const App: React.FC = () => {
                                                 ? 'bg-gray-400 cursor-not-allowed text-brutal-text' 
                                                 : 'bg-brutal-accent text-brutal-white hover:-translate-y-2 hover:shadow-brutal-lg'}`
                                         }>
-                                        {isLoading ? <><LoaderIcon className="w-6 h-6" /> {t('generatingButton')}</> : <><DownloadIcon className="w-6 h-6"/> {t('generateButton')}</>}
+                                        {isLoading ? <><LoaderIcon className="w-6 h-6 animate-spin" /> {t('generatingButton')}</> : <><DownloadIcon className="w-6 h-6"/> {t('generateButton')}</>}
                                     </button>
                                     <div className="flex justify-start pt-8">
                                         <button onClick={() => setCurrentStep(3)} className="flex items-center justify-center px-6 py-3 font-bold bg-brutal-surface text-brutal-text border-4 border-brutal-border shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg transition-all" aria-label={t('backButton')}>
@@ -889,7 +889,7 @@ const App: React.FC = () => {
                                  <div className="h-10 text-center mt-6 font-mono font-bold">
                                     {isLoading && (
                                         <div className="flex items-center justify-center gap-2 text-brutal-text">
-                                            <LoaderIcon className="w-4 h-4"/>
+                                            <LoaderIcon className="w-4 h-4 animate-spin"/>
                                             <p>{statusMessage}</p>
                                         </div>
                                     )}
@@ -952,7 +952,7 @@ const App: React.FC = () => {
             <Modal
                 isOpen={isOcrModalOpen}
                 onClose={() => setIsOcrModalOpen(false)}
-                title="OCR Tool"
+                title="Basic Image to Text"
                 maxWidth="max-w-4xl"
             >
                 <OcrModal 

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { PresentationIcon, ExcelIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, CogIcon } from './icons';
 import { FileUpload } from './FileUpload';
@@ -161,7 +162,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                 </div>
             </div>
 
-            {isParsing && <div className="flex justify-center items-center gap-2 text-brutal-text font-bold bg-brutal-bg p-2 border border-brutal-border w-fit mx-auto"><LoaderIcon className="w-4 h-4"/> Parsing files...</div>}
+            {isParsing && <div className="flex justify-center items-center gap-2 text-brutal-text font-bold bg-brutal-bg p-2 border border-brutal-border w-fit mx-auto"><LoaderIcon className="w-4 h-4 animate-spin"/> Parsing files...</div>}
 
             {showConfig && (
                 <div className="bg-brutal-surface p-6 border-4 border-brutal-border shadow-brutal-lg space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
@@ -219,7 +220,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
                                     ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
                                     : 'bg-brutal-accent text-brutal-white hover:-translate-y-1 hover:shadow-brutal-lg'}`
                             }>
-                            {isLoading ? <><LoaderIcon className="w-4 h-4"/> Generating...</> : <><DownloadIcon className="w-4 h-4"/> Generate & Download</>}
+                            {isLoading ? <><LoaderIcon className="w-4 h-4 animate-spin"/> Generating...</> : <><DownloadIcon className="w-4 h-4"/> Generate & Download</>}
                         </button>
                     </div>
                 </div>
@@ -228,7 +229,7 @@ export const DataEntryWorkflow: React.FC<DataEntryWorkflowProps> = ({ presentati
             <div className="h-10 text-center mt-6 font-mono font-bold">
                 {isLoading && (
                     <div className="flex items-center justify-center gap-2 text-brutal-text">
-                        <LoaderIcon className="w-4 h-4"/>
+                        <LoaderIcon className="w-4 h-4 animate-spin"/>
                         <p>{statusMessage}</p>
                     </div>
                 )}

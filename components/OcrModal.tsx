@@ -56,15 +56,13 @@ export const OcrModal: React.FC<OcrModalProps> = ({ onInsert, onClose }) => {
     return (
         <div className="flex flex-col h-[80vh] sm:h-[85vh] text-brutal-text">
              <div className="flex-shrink-0 p-4 border-b-4 border-brutal-border bg-brutal-surface">
-                <p className="text-sm font-bold uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border inline-block mb-2">IMAGE TO TEXT (OCR)</p>
-                <p className="text-sm">Upload images to extract text. Supports multiple files.</p>
+                <p className="text-sm font-bold uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border inline-block">UPLOAD IMAGE. BOOM! TEXT.</p>
             </div>
 
             <div className="flex-grow p-4 overflow-y-auto bg-brutal-bg space-y-6">
                 
                 {/* Upload Section */}
                 <div className="space-y-2">
-                    <h4 className="font-bold uppercase border-b-2 border-brutal-border inline-block">1. Upload Images</h4>
                     <FileUpload
                         id="ocr-upload"
                         onFileSelect={handleFileSelect}
@@ -77,31 +75,30 @@ export const OcrModal: React.FC<OcrModalProps> = ({ onInsert, onClose }) => {
                 {/* File List Section */}
                 {files.length > 0 && (
                     <div className="space-y-2">
-                        <h4 className="font-bold uppercase border-b-2 border-brutal-border inline-block">2. Arrange Order</h4>
                         <div className="space-y-2">
                             {files.map((file, index) => (
-                                <div key={`${file.name}-${index}`} className="flex items-center justify-between bg-brutal-surface border-2 border-brutal-border p-2 shadow-brutal-sm">
-                                    <span className="truncate text-sm font-mono pr-2">{file.name}</span>
-                                    <div className="flex items-center gap-1">
+                                <div key={`${file.name}-${index}`} className="flex items-center justify-between bg-brutal-surface border-2 border-brutal-border p-2 shadow-brutal-sm gap-2">
+                                    <span className="truncate text-sm font-mono flex-grow pr-2">{file.name}</span>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
                                         <button 
                                             onClick={() => moveFile(index, 'up')} 
                                             disabled={index === 0}
-                                            className="p-1 border border-brutal-border hover:bg-brutal-bg disabled:opacity-30"
+                                            className="w-8 h-8 flex items-center justify-center border-2 border-brutal-border hover:bg-brutal-bg disabled:opacity-30 transition-colors"
                                         >
                                             <ArrowUpIcon className="w-4 h-4" />
                                         </button>
                                         <button 
                                             onClick={() => moveFile(index, 'down')} 
                                             disabled={index === files.length - 1}
-                                            className="p-1 border border-brutal-border hover:bg-brutal-bg disabled:opacity-30"
+                                            className="w-8 h-8 flex items-center justify-center border-2 border-brutal-border hover:bg-brutal-bg disabled:opacity-30 transition-colors"
                                         >
                                             <ArrowDownIcon className="w-4 h-4" />
                                         </button>
                                         <button 
                                             onClick={() => handleRemoveFile(file.name)}
-                                            className="p-1 border border-brutal-border bg-red-500 text-white hover:bg-red-700 ml-2"
+                                            className="w-8 h-8 flex items-center justify-center border-2 border-brutal-border bg-red-600 text-white hover:bg-red-700 ml-2 transition-colors"
                                         >
-                                             <span className="font-bold text-xs px-1">X</span>
+                                             <span className="font-bold text-xs">X</span>
                                         </button>
                                     </div>
                                 </div>
@@ -114,15 +111,14 @@ export const OcrModal: React.FC<OcrModalProps> = ({ onInsert, onClose }) => {
                             className={`w-full py-2 font-bold uppercase border-2 border-brutal-border shadow-brutal flex items-center justify-center gap-2 mt-2
                                 ${isProcessing ? 'bg-gray-300 cursor-not-allowed' : 'bg-brutal-accent text-brutal-white hover:-translate-y-1 hover:shadow-brutal-lg'}`}
                         >
-                            {isProcessing ? <><LoaderIcon className="w-4 h-4"/> Processing...</> : <><ScanIcon className="w-4 h-4"/> Scan Images</>}
+                            {isProcessing ? <><LoaderIcon className="w-4 h-4 animate-spin"/> Processing...</> : <><ScanIcon className="w-4 h-4"/> Scan Images</>}
                         </button>
-                        {statusMessage && <p className="text-xs font-mono text-center bg-brutal-surface border border-brutal-border p-1">{statusMessage}</p>}
+                        {statusMessage && <p className="text-xs font-mono text-center bg-brutal-surface border-2 border-brutal-border p-1">{statusMessage}</p>}
                     </div>
                 )}
 
                 {/* Result Section */}
                 <div className="space-y-2">
-                    <h4 className="font-bold uppercase border-b-2 border-brutal-border inline-block">3. Edit Result</h4>
                     <textarea 
                         value={scannedText}
                         onChange={(e) => setScannedText(e.target.value)}

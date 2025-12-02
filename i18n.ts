@@ -123,6 +123,9 @@ export const tutorialContent = {
         step3ParaTitle: "Paragraphify",
         step3ParaDesc: "Dalam Text Field ada pula fitur Paragraphify. Fitur ini digunakan untuk mengubah teks dengan banyak baris (biasanya dari file PDF) menjadi satu paragraf utuh. Hal ini bertujuan untuk membuat teks yang dimasukkan menjadi lebih optimal.",
 
+        step3OcrTitle: "Image-to-Text",
+        step3OcrDesc: "Selain paragraphify ada pula fitur lain. Salah satunya adalah Image-to-Text. Fitur ini berfungsi untuk mengubah gambar menjadi teks. Kamu dapat mengunggah gambar (bisa 2 atau lebih) dan mengubahnya menjadi teks. Sebelum memindahkannya ke text field, kamu bisa mengedit beberapa teks dan klik tombol “INSERT TEXT”",
+
         step3SubBTitle: "Image Field",
         step3SubBDesc: "Image Field berfungsi jika kamu ingin memasukkan gambar ke dalam teks misa. Image field ini hanya tersedia di beberapa bagian yang umumnya berupa gambar seperti lagu-lagu. Kamu bisa langsung mengunggah gambar, bisa satu gambar ataupun banyak gambar sekaligus. Adapun beberapa fitur yang bisa kamu akses setelah ada gambar yang terunggah.",
 
@@ -169,6 +172,9 @@ export const tutorialContent = {
         
         step3ParaTitle: "Paragraphify",
         step3ParaDesc: "The Paragraphify feature converts multi-line text (usually from PDFs) into a single paragraph. This optimizes the text layout.",
+
+        step3OcrTitle: "Image-to-Text",
+        step3OcrDesc: "Another feature is Image-to-Text. It converts images into text. You can upload multiple images to extract text. Before inserting into the field, you can edit the text and click \"INSERT TEXT\".",
 
         step3SubBTitle: "Image Field",
         step3SubBDesc: "Use Image Field to insert images, typically for songs. You can upload one or multiple images. Several features are available once images are uploaded.",
