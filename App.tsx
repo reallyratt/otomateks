@@ -1,9 +1,9 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Language, PresentationData, MassType } from './types';
 import { translations } from './i18n';
 import { processTemplate } from './services/pptTemplater';
-import { PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon, SlidersIcon } from './components/icons';
+import { PresentationIcon, SparklesIcon, LoaderIcon, DownloadIcon, AlertTriangleIcon, ImageIcon, TextIcon, InfoIcon, ParagraphIcon, ArrowLeftIcon, ArrowRightIcon, SlidersIcon, ScanIcon } from './components/icons';
 import { FileUpload } from './components/FileUpload';
 import { Modal } from './components/Modal';
 import { TemplateCreationGuide } from './components/TemplateCreationGuide';
@@ -13,6 +13,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { DevlogModal } from './components/DevlogModal';
 import { DataEntryWorkflow } from './components/DataEntryWorkflow';
 import { ImageEditorModal } from './components/ImageEditorModal';
+import { OcrModal } from './components/OcrModal';
 
 
 type InputType = 'text' | 'image' | 'multi-image';
@@ -156,6 +157,7 @@ const defaultTitlesJawa: PresentationData = {
     A37: 'Thumbnail B',
 };
 
+const GOOGLE_API_KEY = "AIzaSyBcgO-R9gfvk2oD0-W6teFJWTc_dVKfh6M";
 
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -238,6 +240,10 @@ const App: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingFile, setEditingFile] = useState<{ key: string; file: File } | null>(null);
 
+    // OCR State
+    const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+    const [ocrTargetKey, setOcrTargetKey] = useState<string | null>(null);
+
     const [harianOptionalSections, setHarianOptionalSections] = useState({
         showLaguPembuka: false,
         showTuhanKasihanilahKami: false,
@@ -250,6 +256,7 @@ const App: React.FC = () => {
         showLaguPenutup: false,
     });
     
+
     // Update CSS Variable when accentColor changes
     useEffect(() => {
         document.documentElement.style.setProperty('--color-accent', accentColor);
@@ -523,6 +530,23 @@ const App: React.FC = () => {
         });
     };
 
+    const handleOcrClick = (key: string) => {
+        setOcrTargetKey(key);
+        setIsOcrModalOpen(true);
+    };
+
+    const handleOcrInsert = (text: string) => {
+        if (ocrTargetKey) {
+             setPresentationData(prev => {
+                const currentText = (prev as any)[ocrTargetKey] || '';
+                return { ...prev, [ocrTargetKey]: currentText + (currentText ? '\n\n' : '') + text };
+            });
+            setStatusMessage("Text inserted successfully!");
+            setTimeout(() => setStatusMessage(''), 3000);
+        }
+    };
+
+
     const handleGenerate = useCallback(async () => {
         if (!uploadedTemplate) {
             setError("Please upload a PowerPoint template.");
@@ -554,6 +578,7 @@ const App: React.FC = () => {
 
     return (
         <div className={`min-h-screen bg-brutal-bg text-brutal-text font-sans relative overflow-hidden ${theme}`}>
+            
             <div className="relative z-10 flex flex-col items-center p-4 sm:p-6 lg:p-8 min-h-screen overflow-y-auto hide-scrollbar">
                 <div className="w-full max-w-4xl mx-auto">
                     <header className="flex justify-between items-start mb-8 bg-brutal-surface border-4 border-brutal-border p-4 shadow-brutal">
@@ -785,9 +810,19 @@ const App: React.FC = () => {
                                                             <div>
                                                                 <div className="flex justify-between items-center mb-1">
                                                                     <label htmlFor={textKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
-                                                                    <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" aria-label="Paragraphify Text">
-                                                                        <ParagraphIcon className="w-4 h-4" />
-                                                                    </button>
+                                                                    <div className="flex gap-1">
+                                                                         <button 
+                                                                            onClick={() => handleOcrClick(textKey)} 
+                                                                            title="Scan Text from Image" 
+                                                                            className={`p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text`}
+                                                                            aria-label="OCR from Image"
+                                                                         >
+                                                                            <ScanIcon className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button onClick={() => handleParagraphify(textKey)} title="Paragraphify" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" aria-label="Paragraphify Text">
+                                                                            <ParagraphIcon className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                                 <textarea
                                                                     id={textKey}
@@ -914,6 +949,14 @@ const App: React.FC = () => {
                         }}
                     />
                 )}
+            </Modal>
+            
+             <Modal isOpen={isOcrModalOpen} onClose={() => setIsOcrModalOpen(false)} title="Image to Text (OCR)" maxWidth="max-w-4xl">
+                <OcrModal 
+                    onInsert={handleOcrInsert} 
+                    onClose={() => setIsOcrModalOpen(false)}
+                    apiKey={GOOGLE_API_KEY}
+                />
             </Modal>
         </div>
     );

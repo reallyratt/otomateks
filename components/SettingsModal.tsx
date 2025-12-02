@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GlobeIcon, SunIcon, MoonIcon, PaletteIcon } from './icons';
 
@@ -53,12 +54,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                 </div>
             </div>
-
-             <div className="p-4 bg-brutal-bg border-2 border-brutal-border">
-                <p className="font-bold text-sm text-brutal-text">
-                    Note: Changes apply instantly across the application.
-                </p>
-             </div>
              
              {/* Theme Section */}
             <div className="space-y-3">
@@ -87,6 +82,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button>
                 </div>
             </div>
+            
+             <div className="p-4 bg-brutal-bg border-2 border-brutal-border">
+                <p className="font-bold text-sm text-brutal-text">
+                    Note: Changes apply instantly across the application.
+                </p>
+             </div>
+
         </div>
     );
 };
