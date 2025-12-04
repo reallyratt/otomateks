@@ -19,6 +19,11 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     uploadTemplateTitle: 'Upload Template',
     uploadTemplateLabel: 'Click to upload template',
     uploadTemplateSelected: 'Selected: {fileName}',
+    // Step 2 - Pengumuman
+    pengumumanPembuka: 'OPENING ANNOUNCEMENT',
+    pengumumanPenutup: 'CLOSING ANNOUNCEMENT',
+    uploadTemplateOpening: 'Upload Opening Template',
+    uploadTemplateClosing: 'Upload Closing Template',
     // Step 3
     finalMessage: "Thank you for your work on this week’s Teks Misa! :D",
     generateButton: 'Generate & Download',
@@ -35,6 +40,7 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     misaKhusus: 'Special Mass',
     hariRaya: 'Feast Day',
     lainnya: 'Other',
+    pengumuman: 'Announcement',
     dataEntry: 'Data Entry (from Excel)',
     // File Setup (Step 2)
     namaFile: 'File Name',
@@ -63,6 +69,11 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     uploadTemplateTitle: 'Unggah Template',
     uploadTemplateLabel: 'Klik untuk mengunggah template',
     uploadTemplateSelected: 'Terpilih: {fileName}',
+    // Step 2 - Pengumuman
+    pengumumanPembuka: 'PENGUMUMAN PEMBUKA',
+    pengumumanPenutup: 'PENGUMUMAN PENUTUP',
+    uploadTemplateOpening: 'Unggah Template Opening',
+    uploadTemplateClosing: 'Unggah Template Closing',
     // Step 3
     finalMessage: 'Terima kasih yaa sudah bikin teks minggu ini :D',
     generateButton: 'Generate & Download',
@@ -79,6 +90,7 @@ export const translations: { [key: string]: { [key: string]: string } } = {
     misaKhusus: 'Misa Khusus',
     hariRaya: 'Hari Raya',
     lainnya: 'Lainnya',
+    pengumuman: 'Pengumuman',
     dataEntry: 'Data Entry (dari Excel)',
     // File Setup (Step 2)
     namaFile: 'Nama File',
@@ -125,6 +137,9 @@ export const tutorialContent = {
 
         step3OcrTitle: "Image-to-Text",
         step3OcrDesc: "Selain paragraphify ada pula fitur lain. Salah satunya adalah Image-to-Text. Fitur ini berfungsi untuk mengubah gambar menjadi teks. Kamu dapat mengunggah gambar (bisa 2 atau lebih) dan mengubahnya menjadi teks. Sebelum memindahkannya ke text field, kamu bisa mengedit beberapa teks dan klik tombol “INSERT TEXT”",
+
+        step3EmphasisTitle: "Triple Emphasis",
+        step3EmphasisDesc: "Fitur ini berfungsi untuk menambahkan bagian custom yang nantinya akan di bold / italic / underline pada file teks misa. Caranya sama seperti biasanya, dengan memilih teks yang akan diubah, dan klik salah satu tombol. Setelahnya akan muncul simbol seperti <b> dan </b> simbol-simbol ini adalah tanda teks bagian mana yang akan diubah menjadi bold / italic / underline. Untuk membatalkan aksi tersebut, cukup hapus saja kedua simbol.",
 
         step3SubBTitle: "Image Field",
         step3SubBDesc: "Image Field berfungsi jika kamu ingin memasukkan gambar ke dalam teks misa. Image field ini hanya tersedia di beberapa bagian yang umumnya berupa gambar seperti lagu-lagu. Kamu bisa langsung mengunggah gambar, bisa satu gambar ataupun banyak gambar sekaligus. Adapun beberapa fitur yang bisa kamu akses setelah ada gambar yang terunggah.",
@@ -175,6 +190,9 @@ export const tutorialContent = {
 
         step3OcrTitle: "Image-to-Text",
         step3OcrDesc: "Another feature is Image-to-Text. It converts images into text. You can upload multiple images to extract text. Before inserting into the field, you can edit the text and click \"INSERT TEXT\".",
+
+        step3EmphasisTitle: "Triple Emphasis",
+        step3EmphasisDesc: "This feature allows you to add custom formatting (Bold / Italic / Underline) to your mass text. Select the text you want to change and click the button. Symbols like <b> and </b> will appear. These indicate which part will be formatted. To cancel, simply delete both symbols.",
 
         step3SubBTitle: "Image Field",
         step3SubBDesc: "Use Image Field to insert images, typically for songs. You can upload one or multiple images. Several features are available once images are uploaded.",

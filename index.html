@@ -35,6 +35,25 @@
               'brutal': '4px 4px 0px 0px var(--brutal-border)',
               'brutal-lg': '8px 8px 0px 0px var(--brutal-border)',
               'brutal-sm': '2px 2px 0px 0px var(--brutal-border)',
+            },
+            animation: {
+              fadeIn: 'fadeIn 0.3s ease-out forwards',
+              slideIn: 'slideIn 0.3s ease-out forwards',
+              slideUp: 'slideUp 0.3s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideIn: {
+                '0%': { opacity: '0', transform: 'translateX(-10px)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
             }
           }
         }

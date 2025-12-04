@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { UploadIcon, XIcon, PencilIcon, ContrastIcon } from './icons';
 
@@ -13,6 +14,7 @@ interface FileUploadProps {
     invertedFiles?: Set<string>;
     isImage?: boolean;
     onFileEdit?: (fileName: string) => void;
+    disableImageTools?: boolean;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({ 
@@ -26,7 +28,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     onInvertToggle,
     invertedFiles = new Set(),
     isImage = false,
-    onFileEdit
+    onFileEdit,
+    disableImageTools = false
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -121,7 +124,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     <h4 className="text-xs font-black uppercase border-b-2 border-brutal-border inline-block text-brutal-text">Uploaded Files</h4>
                     <ul className="space-y-2">
                         {files.map(file => (
-                            <li key={file.name} className="flex items-center justify-between bg-brutal-surface border-2 border-brutal-border p-2 shadow-brutal-sm group hover:translate-x-1 transition-transform">
+                            <li key={file.name} className="flex items-center justify-between bg-brutal-surface border-2 border-brutal-border p-2 shadow-brutal-sm group hover:translate-x-1 transition-transform animate-slideIn">
                                 <button 
                                     onClick={() => handlePreview(file)}
                                     className={`text-brutal-text font-bold truncate pr-2 text-left text-sm ${isImage ? 'hover:underline cursor-pointer' : ''}`}
@@ -130,7 +133,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                     {file.name}
                                 </button>
                                 <div className="flex items-center gap-2">
-                                     {isImage && onFileEdit && (
+                                     {isImage && onFileEdit && !disableImageTools && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onFileEdit(file.name); }}
                                             className="text-brutal-text border-2 border-brutal-border p-1 hover:bg-brutal-accent hover:text-brutal-white transition-colors"
@@ -140,7 +143,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                         </button>
                                     )}
                                     
-                                    {isImage && onInvertToggle && (
+                                    {isImage && onInvertToggle && !disableImageTools && (
                                         <button
                                             onClick={(e) => { e.preventDefault(); onInvertToggle(file.name); }}
                                             className={`p-1 border-2 border-brutal-border transition-colors ${
@@ -173,10 +176,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             {/* Image Preview Modal */}
             {previewUrl && (
                 <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-brutal-bg/90 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-brutal-bg/90 p-4 animate-fadeIn"
                     onClick={closePreview}
                 >
-                    <div className="relative border-4 border-brutal-border bg-brutal-surface p-2 shadow-brutal-lg max-w-[95vw] max-h-[95dvh] flex flex-col items-center">
+                    <div className="relative border-4 border-brutal-border bg-brutal-surface p-2 shadow-brutal-lg max-w-[95vw] max-h-[95dvh] flex flex-col items-center animate-slideUp">
                          <button 
                             onClick={closePreview}
                             className="absolute -top-6 -right-6 p-2 text-brutal-bg bg-brutal-border border-2 border-brutal-surface shadow-[2px_2px_0px_var(--brutal-border)] hover:scale-110 transition z-50"

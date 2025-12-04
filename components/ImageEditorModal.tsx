@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CropIcon, TrashIcon, XIcon, PlusIcon } from './icons';
 
@@ -96,6 +97,8 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         }
     };
     
+    // --- Mouse Handlers ---
+
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, rectId: number, type: 'move' | 'resize-br') => {
         e.stopPropagation();
         const activeSlide = slides.find(s => s.id === activeSlideId);
@@ -164,8 +167,84 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
     }, [handleMouseMove]);
+
+    // --- Touch Handlers (Mobile) ---
+
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>, rectId: number, type: 'move' | 'resize-br') => {
+        e.stopPropagation();
+        // Prevent default only if necessary, but here we might need dragging
+        // If we prevent default, page scrolling stops. For drag/drop usually we want to stop scroll.
+        // e.preventDefault(); 
+        
+        const activeSlide = slides.find(s => s.id === activeSlideId);
+        const rect = activeSlide?.rects.find(r => r.id === rectId);
+        if (!rect) return;
+        
+        const touch = e.touches[0];
+
+        interactionRef.current = {
+            type,
+            rectId,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            startRectX: rect.x,
+            startRectY: rect.y,
+            startRectW: rect.width,
+            startRectH: rect.height,
+        };
+    };
+
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (!interactionRef.current || !containerRef.current) return;
+        
+        // Prevent scrolling while dragging/resizing
+        if (e.cancelable) e.preventDefault();
+        
+        const touch = e.touches[0];
+        const { type, rectId, startX, startY, startRectX, startRectY, startRectW, startRectH } = interactionRef.current;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        const containerBounds = containerRef.current.getBoundingClientRect();
+        
+        setSlides(prevSlides =>
+            prevSlides.map(slide => {
+                if (slide.id !== activeSlideId) return slide;
+                
+                const newRects = slide.rects.map(r => {
+                    if (r.id !== rectId) return r;
+                    
+                    let newX = r.x;
+                    let newY = r.y;
+                    let newWidth = r.width;
+                    let newHeight = r.height;
+
+                    if (type === 'move') {
+                        newX = startRectX + dx;
+                        newY = startRectY + dy;
+                    } else if (type === 'resize-br') {
+                        newWidth = startRectW + dx;
+                        newHeight = startRectH + dy;
+                    }
+                    
+                    if (newX < 0) newX = 0;
+                    if (newY < 0) newY = 0;
+                    if (newWidth < 20) newWidth = 20;
+                    if (newHeight < 20) newHeight = 20;
+                    if (newX + newWidth > containerBounds.width) newWidth = containerBounds.width - newX;
+                    if (newY + newHeight > containerBounds.height) newHeight = containerBounds.height - newY;
+
+                    return { ...r, x: newX, y: newY, width: newWidth, height: newHeight };
+                });
+                return { ...slide, rects: newRects };
+            })
+        );
+    };
+
+    const handleTouchEnd = () => {
+        interactionRef.current = null;
+    };
     
-    const handleDeleteRect = (e: React.MouseEvent, idToDelete: number) => {
+    const handleDeleteRect = (e: React.MouseEvent | React.TouchEvent, idToDelete: number) => {
         e.stopPropagation();
         setSlides(prevSlides =>
             prevSlides.map(slide =>
@@ -259,8 +338,20 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                 </div>
             </div>
 
-            <div className="flex-grow p-4 overflow-hidden bg-brutal-bg relative flex items-center justify-center border-b-4 border-brutal-border">
-                <div ref={containerRef} className="relative inline-block border-4 border-brutal-border shadow-brutal bg-brutal-surface" style={{ touchAction: 'none' }}>
+            <div className="flex-grow p-4 overflow-hidden bg-brutal-bg relative flex items-center justify-center border-b-4 border-brutal-border" 
+                 onTouchMove={(e) => {
+                     // If interacting with a box, prevent default to stop scrolling
+                     if (interactionRef.current) e.preventDefault();
+                 }}>
+                <div 
+                    ref={containerRef} 
+                    className="relative inline-block border-4 border-brutal-border shadow-brutal bg-brutal-surface" 
+                    style={{ touchAction: 'none' }}
+                    onMouseMove={handleMouseMove} // Mouse fallback
+                    onMouseUp={handleMouseUp}     // Mouse fallback
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
                     <img
                         ref={imageRef}
                         src={imageUrl}
@@ -271,6 +362,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                         <div
                             key={rect.id}
                             onMouseDown={(e) => handleMouseDown(e, rect.id, 'move')}
+                            onTouchStart={(e) => handleTouchStart(e, rect.id, 'move')}
                             className="absolute border-4 border-brutal-accent cursor-move bg-brutal-accent/20"
                             style={{
                                 left: `${rect.x}px`,
@@ -285,6 +377,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                             </div>
                             <button 
                                 onClick={(e) => handleDeleteRect(e, rect.id)}
+                                onTouchEnd={(e) => handleDeleteRect(e, rect.id)}
                                 className="absolute -top-4 -right-4 w-6 h-6 bg-red-600 text-brutal-white border-2 border-brutal-border flex items-center justify-center hover:bg-red-800 z-20"
                                 aria-label="Delete crop area"
                             >
@@ -292,6 +385,7 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({ file, onSave
                             </button>
                             <div
                                 onMouseDown={(e) => handleMouseDown(e, rect.id, 'resize-br')}
+                                onTouchStart={(e) => handleTouchStart(e, rect.id, 'resize-br')}
                                 className="absolute -bottom-2 -right-2 w-4 h-4 bg-brutal-surface border-2 border-brutal-border cursor-se-resize z-20"
                             />
                         </div>
