@@ -272,7 +272,7 @@ const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: string | null; s
              fullText += node.textContent || '';
         }
         
-        // Regex for C01.., T01.., or PC01..
+        // Regex for C01.., T01.., or PC01.. handles spaces: {{ C01 }}
         const match = fullText.match(/{{\s*([CT]|PC)([0-9]+(_\d+)?)\s*}}/);
         if (match) {
             const key = match[1] + match[2]; // e.g. "PC01", "C01_2"
@@ -528,7 +528,8 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
 
     textNodes.forEach(node => {
         if (!node.textContent) return;
-        const regex = /{{([a-zA-Z0-9_]+)}}/;
+        // Improved regex to handle spaces like {{ A01 }}
+        const regex = /{{\s*([a-zA-Z0-9_]+)\s*}}/;
         const match = node.textContent.match(regex);
         if (match) {
             targets.push({ node, match, key: match[1] });
@@ -536,6 +537,7 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
     });
 
     for (const { node, match, key } of targets) {
+        // Image keys (C), Thumbnail keys (T), Announcement Images (PC) are handled by image logic, skip simple text replacement.
         if (key === ignoredKey || key.startsWith('C') || key.startsWith('T') || key.startsWith('PC')) continue;
 
         const propertyValue = data[key];
@@ -552,13 +554,13 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
                 node.textContent = node.textContent.replace(match[0], propertyValue);
             }
         } else {
+            // If data is missing/undefined/null, remove the placeholder to avoid ugly {{KEY}} remaining
             node.textContent = node.textContent.replace(match[0], '');
         }
     }
 };
 
 export const processTemplate = async (data: PresentationData, templateFile: File, language: Language) => {
-    // 1. PRE-PROCESSING: Append endings to the data strings
     const modifiedData = { ...data };
     
     // Resolve dynamic keys in endingMap based on language
@@ -570,17 +572,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         'B011': language === 'indonesia' ? 2 : 3,
         'B014': language === 'indonesia' ? 4 : 5
     };
-
-    for (const [key, endingId] of Object.entries(currentEndingMap)) {
-        if (modifiedData[key] && typeof modifiedData[key] === 'string') {
-            const endingHtml = endingsAsHtml[language][endingId];
-            if (endingHtml) {
-                // Prepend \n if existing text is not empty
-                const existing = (modifiedData[key] as string).trimEnd();
-                modifiedData[key] = existing + (existing ? '\n' : '') + endingHtml;
-            }
-        }
-    }
 
     const zip = await JSZip.loadAsync(templateFile);
     const presXmlStr = await zip.file('ppt/presentation.xml').async('string');
@@ -597,6 +588,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
     let nextAvailableSlideId = getNextXmlSlideId(presXmlDoc);
 
     const newSlideIdNodes = [];
+    let previousSlideCache: { xml: string, rels: string } | null = null;
     
     for (const sldId of Array.from(slideIdList.querySelectorAll('sldId'))) {
         const rId = sldId.getAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'id');
@@ -672,17 +664,46 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                                 const key = match[1];
                                 const textValue = data[key];
                                 if (typeof textValue === 'string') {
-                                    if (textValue.replace(/<[^>]+>/g, '').length > MAX_TEXT_LENGTH) {
+                                    // Ending Logic Check
+                                    const endingId = currentEndingMap[key];
+                                    let effectiveText = textValue;
+                                    let endingHtml = '';
+
+                                    if (endingId) {
+                                        endingHtml = endingsAsHtml[language][endingId];
+                                    }
+
+                                    // If text + ending fits without splitting, or if it needs splitting
+                                    const rawTextLen = textValue.replace(/<[^>]+>/g, '').length;
+                                    const rawEndingLen = endingHtml.replace(/<[^>]+>/g, '').length;
+                                    
+                                    if (rawTextLen > MAX_TEXT_LENGTH || (endingHtml && (rawTextLen + rawEndingLen > MAX_TEXT_LENGTH))) {
                                         splittableKey = key;
                                         chunks = chunkText(textValue, MAX_TEXT_LENGTH);
+                                        
+                                        // Append Ending Logic
+                                        if (endingHtml) {
+                                            const lastChunk = chunks[chunks.length - 1];
+                                            const rawLast = lastChunk.replace(/<[^>]+>/g, '');
+                                            // Check if ending fits on last slide
+                                            if (rawLast.length + rawEndingLen + 1 <= MAX_TEXT_LENGTH) {
+                                                chunks[chunks.length - 1] = lastChunk + '\n' + endingHtml;
+                                            } else {
+                                                // Create a new slide just for ending
+                                                chunks.push(endingHtml);
+                                            }
+                                        }
                                         break;
+                                    } else if (endingHtml) {
+                                        // Fits in one slide, just append ending to data
+                                        data[key] = textValue + '\n' + endingHtml;
                                     }
                                 }
                             }
                         }
                     }
 
-                    if (splittableKey && chunks.length > 1) {
+                    if (splittableKey && chunks.length > 0) {
                         for (let c = 0; c < chunks.length; c++) {
                             const isFirstChunk = c === 0;
                             // If base slide, reuse id, else create new
@@ -794,16 +815,71 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                      await processInnerSlide(currentSlideXmlDoc, currentSlideRelsXmlDoc, localData, isOriginalSlide);
                 }
 
-                // SEPARATOR SLIDE LOGIC
-                // If it's NOT Mazmur (B08) and NOT the last item in the dynamic list, insert a separator slide
-                if (expansionKey !== 'B08' && i < allIndices.length - 1) {
-                    const separatorSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
+                // SEPARATOR / REFREN SLIDE LOGIC
+                // If it's Mazmur (B08) or BPI (B013), and we have a previous slide (Refren), insert it.
+                // Logic: Refren -> Ayat 1 -> Refren -> Ayat 2 -> Refren
+                const isMazmurOrBPI = expansionKey === 'B08' || expansionKey === 'B013';
+                
+                if (isMazmurOrBPI && previousSlideCache) {
+                    // Always insert Refren after Ayat, including the last one (following "refren > ayat I > refren > ayat II > refren")
+                    
+                    const refrenXmlDoc = parser.parseFromString(previousSlideCache.xml, 'application/xml');
+                    const refrenRelsDoc = parser.parseFromString(previousSlideCache.rels, 'application/xml');
+                    
+                    const processRefrenCopy = async (xml: XMLDocument, rels: XMLDocument) => {
+                         replaceSimplePlaceholders(xml, modifiedData, null);
+                         
+                         // Check for Image placeholder in the copied Refren slide and process it
+                         const { key: refImgKey, shape: refImgShape } = findImagePlaceholder(xml);
+                         
+                         if (refImgKey && modifiedData[refImgKey] && refImgShape) {
+                            const refImages = modifiedData[refImgKey] as string[];
+                            if (refImages.length > 0) {
+                                // For the duplicated refren, we take the first image (Refren should match the original)
+                                const imageBase64 = refImages[0];
+                                const imageRId = await addImageToPackage(zip, rels, contentTypesXmlDoc, imageBase64);
+                                await modifyShapeForImage(refImgShape, imageRId, imageBase64);
+                            } else {
+                                if (refImgShape.parentNode) refImgShape.parentNode.removeChild(refImgShape);
+                            }
+                         } else if (refImgShape && refImgShape.parentNode) {
+                             refImgShape.parentNode.removeChild(refImgShape);
+                         }
+                    };
+                    
+                    await processRefrenCopy(refrenXmlDoc, refrenRelsDoc);
+
+                    const sepSlideNum = nextAvailableSlideNum++;
+                    const sepSlideId = nextAvailableSlideId++;
+                    const sepPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                    const sepSlidePath = `ppt/slides/slide${sepSlideNum}.xml`;
+                    const sepSlideRelsPath = sepSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
+                    
+                    zip.file(sepSlidePath, serializer.serializeToString(refrenXmlDoc));
+                    zip.file(sepSlideRelsPath, serializer.serializeToString(refrenRelsDoc));
+
+                    const sepOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                    sepOverride.setAttribute('PartName', `/${sepSlidePath}`);
+                    sepOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                    contentTypesXmlDoc.querySelector('Types')?.appendChild(sepOverride);
+                    
+                    const sepPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                    sepPresRel.setAttribute('Id', sepPresRelId);
+                    sepPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                    sepPresRel.setAttribute('Target', `slides/slide${sepSlideNum}.xml`);
+                    presRelsXmlDoc.querySelector('Relationships')?.appendChild(sepPresRel);
+                    
+                    const sepSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                    sepSldIdNode.setAttribute('id', String(sepSlideId));
+                    sepSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', sepPresRelId);
+                    newSlideIdNodes.push(sepSldIdNode);
+                } else if (!isMazmurOrBPI && i < allIndices.length - 1) {
+                    // Standard Separator for other dynamic fields (Lagu Pembuka etc - usually just blank or duplicate title)
+                    // Original logic: insert blank copy of current slide
+                     const separatorSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
                     const separatorSlideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
                     
-                    // Create empty data for separator
                     const separatorData = { ...modifiedData };
-                    // Clear all placeholders on the separator slide
-                    // We simply replace them with empty strings using the standard function
                     const keysOnSlide = [];
                     const textNodes = getElementsByLocalName(separatorSlideXmlDoc, 't');
                     for (const node of textNodes) {
@@ -845,6 +921,9 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                     newSlideIdNodes.push(sepSldIdNode);
                 }
             }
+            
+            // Cache current slide as previous for next loop (though for expansion loop we are inside one slide)
+            previousSlideCache = { xml: slideXmlStr, rels: slideRelsStr };
             continue;
         }
 
@@ -853,9 +932,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         if (slideXmlStr.includes('{{B016}}')) {
              const lektorKeys = Object.keys(modifiedData).filter(k => /^B0(1[6-9]|2[0-5])$/.test(k)); // B016 to B025
              const indices = lektorKeys.map(k => parseInt(k.substring(1), 10)).sort((a,b) => a-b);
-             
-             // Ensure we at least process 16 if it exists, logic below handles mapping
-             // Indices should be 16, 17, 18 etc.
              
              if (indices.length === 0 && modifiedData['B016']) indices.push(16);
 
@@ -866,32 +942,22 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
                 
                 // Map Data
-                // Target template uses A016, B016, B27
-                // We map idx to 16
                 const localData = { ...modifiedData };
                 
                 // Replace generic Response B27 with specific response for this Lektor
                 const responseKey = `RESP_B${idx.toString().padStart(3, '0')}`;
-                if (modifiedData[responseKey]) {
-                    localData['B27'] = modifiedData[responseKey];
-                }
+                // Fallback to the first response (RESP_B016) if the specific one is empty, or empty string if that's missing too.
+                // This ensures B27 has a value so it gets replaced.
+                const effectiveResponse = modifiedData[responseKey] || modifiedData['RESP_B016'] || '';
+                localData['B27'] = effectiveResponse;
 
-                // Map A and B keys if idx != 16
                 if (idx !== 16) {
                     localData['A016'] = modifiedData[`A0${idx}`] || modifiedData['A016'];
                     localData['B016'] = modifiedData[`B0${idx}`] || '';
-                    // Also check images C
                     if (modifiedData[`C0${idx}`]) localData['C016'] = modifiedData[`C0${idx}`];
                     else delete localData['C016']; 
                 }
 
-                // Now process content
-                // Doa Umat usually doesn't have images, but good to be safe.
-                // It uses standard text processing.
-                
-                // Remove chunking logic for Doa Umat text? Usually short. But let's keep it standard.
-                 // B016 is the text key on the slide.
-                 
                 let splittableKey: string | null = null;
                 let chunks: string[] = [];
                 const textValue = localData['B016'];
@@ -969,6 +1035,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                      processSlideVariant(currentSlideXmlDoc, isOriginalSlide);
                  }
              }
+             previousSlideCache = { xml: slideXmlStr, rels: slideRelsStr };
              continue;
         }
 
@@ -1023,6 +1090,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                         newSlideIdNodes.push(newSldIdNode);
                     }
                 }
+                previousSlideCache = { xml: slideXmlStr, rels: slideRelsStr };
                 continue;
              } else {
                  if (imageShape.parentNode) {
@@ -1267,6 +1335,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                         newSlideIdNodes.push(sepSldIdNode);
                     }
                 }
+                previousSlideCache = { xml: slideXmlStr, rels: slideRelsStr };
                 continue;
             }
         }
@@ -1284,13 +1353,40 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                     const key = match[1];
                     const textValue = modifiedData[key];
                     if (typeof textValue === 'string') {
-                        // All text is subject to chunking if it exceeds length
-                        // We check visible length using chunkText (which handles HTML tags correctly now)
-                        if (textValue.replace(/<[^>]+>/g, '').length > MAX_TEXT_LENGTH) {
+                         // Ending Logic Check
+                         const endingId = currentEndingMap[key];
+                         let effectiveText = textValue;
+                         let endingHtml = '';
+
+                         if (endingId) {
+                             endingHtml = endingsAsHtml[language][endingId];
+                         }
+
+                         const rawTextLen = textValue.replace(/<[^>]+>/g, '').length;
+                         const rawEndingLen = endingHtml.replace(/<[^>]+>/g, '').length;
+                         
+                         // Check limit
+                         if (rawTextLen > MAX_TEXT_LENGTH || (endingHtml && (rawTextLen + rawEndingLen > MAX_TEXT_LENGTH))) {
                             splittableKey = key;
                             chunks = chunkText(textValue, MAX_TEXT_LENGTH);
+                             // Append Ending Logic
+                             if (endingHtml) {
+                                const lastChunk = chunks[chunks.length - 1];
+                                const rawLast = lastChunk.replace(/<[^>]+>/g, '');
+                                // If the ending makes the last chunk overflow, create a new slide for the ending
+                                if (rawLast.length + rawEndingLen + 1 <= MAX_TEXT_LENGTH) {
+                                    chunks[chunks.length - 1] = lastChunk + '\n' + endingHtml;
+                                } else {
+                                    chunks.push(endingHtml);
+                                }
+                            }
                             break;
-                        }
+                         } else if (endingHtml) {
+                             // Fits in one slide
+                             // We modify the data, so when replaceSimplePlaceholders runs it includes the ending
+                             // But we must be careful not to trigger splitting logic again
+                             modifiedData[key] = textValue + '\n' + endingHtml;
+                         }
                     }
                 }
             }
@@ -1356,6 +1452,9 @@ export const processTemplate = async (data: PresentationData, templateFile: File
             zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
             newSlideIdNodes.push(sldId.cloneNode(true));
         }
+
+        // Cache for next iteration
+        previousSlideCache = { xml: slideXmlStr, rels: slideRelsStr };
     }
 
     while (slideIdList.firstChild) slideIdList.removeChild(slideIdList.firstChild);

@@ -139,7 +139,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                             className="text-brutal-text border-2 border-brutal-border p-1 hover:bg-brutal-accent hover:text-brutal-white transition-colors"
                                             aria-label={`Edit ${file.name}`}
                                         >
-                                            <PencilIcon className="w-3 h-3" />
+                                            <PencilIcon className="w-4 h-4" />
                                         </button>
                                     )}
                                     
@@ -153,7 +153,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                             }`}
                                             aria-label={`Invert colors for ${file.name}`}
                                         >
-                                            <ContrastIcon className="w-3 h-3" />
+                                            <ContrastIcon className="w-4 h-4" />
                                         </button>
                                     )}
 
@@ -163,7 +163,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                                             className="text-brutal-white bg-red-600 border-2 border-brutal-border p-1 hover:bg-red-700 transition-colors"
                                             aria-label={`Remove ${file.name}`}
                                         >
-                                            <XIcon className="w-3 h-3" />
+                                            <XIcon className="w-4 h-4" />
                                         </button>
                                     )}
                                 </div>

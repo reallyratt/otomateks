@@ -314,36 +314,40 @@ const App: React.FC = () => {
             const current = prev[textKey] || 1;
             const next = increment ? current + 1 : Math.max(1, current - 1);
             
-            // Title Copy Logic
-            if (increment && baseTitleKey) {
-                const nextSuffix = `_${next}`; // e.g. _2, _3
-                const targetTitleKey = `${baseTitleKey}${nextSuffix}`;
-                
-                // Read current base title directly from presentationData state
-                const baseTitleValue = (presentationData as any)[baseTitleKey];
-                
-                if (baseTitleValue) {
-                    setPresentationData(p => {
-                        // Only set if not already set, or force update? 
-                        // Let's set it if it doesn't exist to be safe, or just always set it to match base
-                        if (!(p as any)[targetTitleKey]) {
-                            return { ...p, [targetTitleKey]: baseTitleValue };
-                        }
-                        return p;
-                    });
+            if (increment) {
+                 // Doa Umat Special Logic: Copy from FIRST Lektor
+                 if (textKey === 'B016') {
+                     const firstLektorTitle = (presentationData as any)['A016'] || '';
+                     const firstLektorResp = (presentationData as any)['RESP_B016'] || '';
+                     
+                     const newIndex = 16 + current; // e.g., if count is 1, next is 2. Index starts at 16. so 16+1 = 17.
+                     const newTitleKey = `A0${newIndex}`;
+                     const newRespKey = `RESP_B0${newIndex}`;
+                     
+                     setPresentationData(p => ({
+                         ...p,
+                         [newTitleKey]: (p as any)[newTitleKey] || firstLektorTitle,
+                         [newRespKey]: (p as any)[newRespKey] || firstLektorResp
+                     }));
+                 } else if (baseTitleKey) {
+                    // Logic for songs (copy title from base)
+                    const baseTitleValue = (presentationData as any)[baseTitleKey];
+                    const nextSuffix = `_${next}`; // e.g. _2, _3
+                    const targetTitleKey = `${baseTitleKey}${nextSuffix}`;
+                    
+                    if (baseTitleValue) {
+                        setPresentationData(p => {
+                            if (!(p as any)[targetTitleKey]) {
+                                return { ...p, [targetTitleKey]: baseTitleValue };
+                            }
+                            return p;
+                        });
+                    }
                 }
             }
 
             return { ...prev, [textKey]: next };
         });
-        
-        // Populate default response text for new Lektor if needed (empty string now)
-        if (textKey === 'B016' && increment) {
-            const currentCount = dynamicFieldCounts['B016'] || 1;
-            const newIndex = 16 + currentCount;
-            const respKey = `RESP_B0${newIndex}`;
-            setPresentationData(prev => ({ ...prev, [respKey]: '' }));
-        }
     };
     
     const handleWeddingModeToggle = (index: number) => {
@@ -733,13 +737,39 @@ const App: React.FC = () => {
 
     // --- RENDER HELPERS ---
     
-    const DynamicSongSection: React.FC<{
-        baseKey: string;
-        label: string;
-        textKey: string;
-        imageKey: string;
-        optional?: boolean;
-    }> = ({ baseKey, label, textKey, imageKey, optional }) => {
+    const renderContentToolbar = (
+        currentMode: 'text' | 'image', 
+        textKey: string | undefined,
+        onModeChange?: (m: 'text' | 'image') => void,
+        showTools: boolean = true
+    ) => (
+        <div className="flex justify-between items-center mb-2 mt-3 border-b-2 border-brutal-border pb-1">
+            <div className="flex gap-2 items-center">
+                 <label className="text-xs font-bold uppercase text-brutal-text bg-brutal-bg px-1 border border-brutal-border">
+                    {currentMode === 'text' ? 'Text Content' : 'Image Content'}
+                </label>
+                {/* Formatting Tools - Only show if Text Key exists (Body field) and Mode is Text */}
+                 {currentMode === 'text' && showTools && textKey && (
+                    <div className="flex gap-1">
+                        <button onClick={() => handleFormat(textKey, 'b')} className="p-1 border border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" title="Bold"><BoldIcon className="w-4 h-4" /></button>
+                        <button onClick={() => handleFormat(textKey, 'i')} className="p-1 border border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" title="Italic"><ItalicIcon className="w-4 h-4" /></button>
+                        <button onClick={() => handleFormat(textKey, 'u')} className="p-1 border border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
+                        <button onClick={() => handleOcrClick(textKey)} className="p-1 border border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" title="Scan Image"><ScanIcon className="w-4 h-4" /></button>
+                        <button onClick={() => handleParagraphify(textKey)} className="p-1 border border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text" title="Paragraphify"><ParagraphIcon className="w-4 h-4" /></button>
+                    </div>
+                )}
+            </div>
+           
+            {onModeChange && (
+                <div className="flex gap-1 bg-brutal-surface">
+                    <button onClick={() => onModeChange('text')} className={`p-1 border border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text'}`} aria-label="Text Mode"><TextIcon className="w-4 h-4" /></button>
+                    <button onClick={() => onModeChange('image')} className={`p-1 border border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text'}`} aria-label="Image Mode"><ImageIcon className="w-4 h-4" /></button>
+                </div>
+            )}
+        </div>
+    );
+
+    const renderDynamicSongSection = (baseKey: string, label: string, textKey: string, imageKey: string) => {
         const count = dynamicFieldCounts[textKey] || 1;
         
         return (
@@ -756,41 +786,25 @@ const App: React.FC = () => {
                     
                     const fieldId = currentTitleKey;
                     const currentMode = inputModes[fieldId] || 'text';
-                    
-                    // Label Logic: LAGU PEMBUKA, LAGU PEMBUKA II, etc.
                     const displayLabel = idx === 0 ? label : `${label} ${toRoman(idx + 1)}`;
 
                     return (
                         <div key={fieldId} className="space-y-4 border-b-2 border-dashed border-brutal-border pb-4 last:border-0 last:pb-0">
                             {idx > 0 && <h4 className="font-bold text-sm uppercase">{displayLabel}</h4>}
                             
-                            <div className="flex items-center justify-between">
+                            <div>
                                 <label htmlFor={currentTitleKey} className="block text-xs font-bold uppercase text-brutal-text">Title</label>
-                                <div className="flex items-center gap-2">
-                                     <button onClick={() => handleModeChange(fieldId, 'text')} className={`p-1 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text'}`} aria-label="Text Mode"><TextIcon className="w-3 h-3" /></button>
-                                     <button onClick={() => handleModeChange(fieldId, 'image')} className={`p-1 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text'}`} aria-label="Image Mode"><ImageIcon className="w-3 h-3" /></button>
-                                </div>
+                                <input type="text" id={currentTitleKey} name={currentTitleKey} value={(presentationData as any)[currentTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
                             </div>
-                            
-                            <input type="text" id={currentTitleKey} name={currentTitleKey} value={(presentationData as any)[currentTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none"/>
 
+                            {renderContentToolbar(currentMode, currentTextKey, (m) => handleModeChange(fieldId, m))}
+                            
                             {currentMode === 'text' ? (
                                 <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label htmlFor={currentTextKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => handleFormat(currentTextKey, 'b')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><BoldIcon className="w-3 h-3" /></button>
-                                            <button onClick={() => handleFormat(currentTextKey, 'i')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ItalicIcon className="w-3 h-3" /></button>
-                                            <button onClick={() => handleFormat(currentTextKey, 'u')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><UnderlineIcon className="w-3 h-3" /></button>
-                                            <button onClick={() => handleOcrClick(currentTextKey)} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ScanIcon className="w-3 h-3" /></button>
-                                            <button onClick={() => handleParagraphify(currentTextKey)} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ParagraphIcon className="w-3 h-3" /></button>
-                                        </div>
-                                    </div>
-                                    <textarea id={currentTextKey} name={currentTextKey} value={(presentationData as any)[currentTextKey] || ''} onChange={handleInputChange} className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar"/>
+                                    <textarea id={currentTextKey} name={currentTextKey} value={(presentationData as any)[currentTextKey] || ''} onChange={handleInputChange} className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-xs font-bold uppercase mb-1 text-brutal-text">Image</label>
                                     <FileUpload id={currentImageKey} onFileSelect={(files) => handleFileChange(currentImageKey, files)} multiple={true} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[currentImageKey] || []} onFileRemove={(fileName) => handleFileRemove(currentImageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(currentImageKey, fileName)} invertedFiles={invertedImages[currentImageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(currentImageKey, fileName)}/>
                                 </div>
                             )}
@@ -807,7 +821,7 @@ const App: React.FC = () => {
         );
     };
 
-    const DoaUmatSection: React.FC = () => {
+    const renderDoaUmatSection = () => {
         const lektorCount = dynamicFieldCounts['B016'] || 1;
 
         return (
@@ -819,8 +833,8 @@ const App: React.FC = () => {
                 {/* Imam Pembuka */}
                  <div className="space-y-1">
                     <label htmlFor="A015" className="block text-xs font-bold uppercase text-brutal-text">Imam (Pembuka)</label>
-                     <input type="text" id="A015" name="A015" value={(presentationData as any)['A015'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2"/>
-                    <textarea id="B015" name="B015" value={(presentationData as any)['B015'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar" placeholder="Teks Imam Pembuka"/>
+                     <input type="text" id="A015" name="A015" value={(presentationData as any)['A015'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                    <textarea id="B015" name="B015" value={(presentationData as any)['B015'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text" placeholder="Teks Imam Pembuka"/>
                 </div>
 
                 {/* Lektors */}
@@ -836,24 +850,17 @@ const App: React.FC = () => {
                              
                              <div>
                                 <label className="block text-[10px] font-bold uppercase text-brutal-text">Title</label>
-                                <input type="text" name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-1 font-mono text-xs focus:bg-brutal-surface focus:outline-none"/>
+                                <input type="text" name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-1 font-mono text-xs focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
                              </div>
 
                              <div>
-                                <div className="flex justify-between items-center">
-                                    <label className="block text-[10px] font-bold uppercase text-brutal-text">Teks Lektor</label>
-                                    <div className="flex gap-1">
-                                         <button onClick={() => handleFormat(textKey, 'b')} className="p-1 border border-brutal-border"><BoldIcon className="w-3 h-3" /></button>
-                                         <button onClick={() => handleFormat(textKey, 'i')} className="p-1 border border-brutal-border"><ItalicIcon className="w-3 h-3" /></button>
-                                         <button onClick={() => handleParagraphify(textKey)} className="p-1 border border-brutal-border"><ParagraphIcon className="w-3 h-3" /></button>
-                                    </div>
-                                </div>
-                                <textarea name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar"/>
+                                {renderContentToolbar('text', textKey, undefined)}
+                                <textarea name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
                              </div>
 
                              <div className="bg-brutal-accent/10 p-2 border-2 border-dashed border-brutal-accent">
                                 <label className="block text-[10px] font-bold uppercase text-brutal-text mb-1">Jawaban Umat</label>
-                                <textarea name={respKey} value={(presentationData as any)[respKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-surface border-2 border-brutal-border p-2 font-mono text-sm focus:bg-white focus:outline-none font-bold" placeholder="Jawaban Umat (Kosongkan jika tidak ada)"/>
+                                <textarea name={respKey} value={(presentationData as any)[respKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-surface border-2 border-brutal-border p-2 font-mono text-sm focus:bg-white focus:outline-none font-bold text-brutal-text" placeholder="Jawaban Umat (Kosongkan jika tidak ada)"/>
                              </div>
                         </div>
                     );
@@ -868,8 +875,8 @@ const App: React.FC = () => {
                 {/* Imam Penutup */}
                  <div className="space-y-1 mt-4 border-t-4 border-brutal-border pt-4">
                     <label htmlFor="A026" className="block text-xs font-bold uppercase text-brutal-text">Imam (Penutup)</label>
-                     <input type="text" id="A026" name="A026" value={(presentationData as any)['A026'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2"/>
-                    <textarea id="B026" name="B026" value={(presentationData as any)['B026'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar" placeholder="Teks Imam Penutup"/>
+                     <input type="text" id="A026" name="A026" value={(presentationData as any)['A026'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                    <textarea id="B026" name="B026" value={(presentationData as any)['B026'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text" placeholder="Teks Imam Penutup"/>
                 </div>
             </div>
         );
@@ -894,52 +901,26 @@ const App: React.FC = () => {
             <div key={titleKey} className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
                 <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
                     <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">{field.label}</h3>
-                    {field.types.length > 1 && (
-                        <div className="flex items-center gap-2">
-                            {field.types.includes('text') && (
-                                <button onClick={() => handleModeChange(titleKey, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode">
-                                    <TextIcon className="w-4 h-4" />
-                                </button>
-                            )}
-                            {(field.types.includes('image') || field.types.includes('multi-image')) && (
-                                    <button onClick={() => handleModeChange(titleKey, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode">
-                                    <ImageIcon className="w-4 h-4" />
-                                    </button>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                     <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <label htmlFor={titleKey} className="block text-xs font-bold uppercase text-brutal-text">Title</label>
-                            <div className="flex gap-1">
-                                <button onClick={() => handleFormat(titleKey, 'b')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text scale-75 origin-right"><BoldIcon className="w-4 h-4" /></button>
-                                <button onClick={() => handleFormat(titleKey, 'i')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text scale-75 origin-right"><ItalicIcon className="w-4 h-4" /></button>
-                                <button onClick={() => handleFormat(titleKey, 'u')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text scale-75 origin-right"><UnderlineIcon className="w-4 h-4" /></button>
-                            </div>
-                        </div>
+                        <label htmlFor={titleKey} className="block text-xs font-bold uppercase text-brutal-text">Title</label>
                         <input type="text" id={titleKey} name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
                     </div>
+                    
+                    {/* Unified Toolbar Placement - Only for body content */}
+                    {(field.types.length > 1 || currentMode === 'text') && (
+                        renderContentToolbar(currentMode, textKey, field.types.length > 1 ? (m) => handleModeChange(titleKey, m) : undefined)
+                    )}
+
                     {currentMode === 'text' && textKey ? (
                         <div className="animate-fadeIn">
-                            <div className="flex justify-between items-center mb-1">
-                                <label htmlFor={textKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
-                                <div className="flex gap-1">
-                                    <button onClick={() => handleFormat(textKey, 'b')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><BoldIcon className="w-4 h-4" /></button>
-                                    <button onClick={() => handleFormat(textKey, 'i')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ItalicIcon className="w-4 h-4" /></button>
-                                    <button onClick={() => handleFormat(textKey, 'u')} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><UnderlineIcon className="w-4 h-4" /></button>
-                                        <button onClick={() => handleOcrClick(textKey)} className={`p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text`}><ScanIcon className="w-4 h-4" /></button>
-                                    <button onClick={() => handleParagraphify(textKey)} className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ParagraphIcon className="w-4 h-4" /></button>
-                                </div>
-                            </div>
                             <textarea id={textKey} name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
                         </div>
                     ) : (
                         imageKey ? (
                             <div className="animate-fadeIn">
-                                <label className="block text-xs font-bold uppercase mb-1 text-brutal-text">Image</label>
                                 <FileUpload id={imageKey} onFileSelect={(files) => handleFileChange(imageKey, files)} multiple={isMultiImage} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[imageKey] || []} onFileRemove={(fileName) => handleFileRemove(imageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(imageKey, fileName)} invertedFiles={invertedImages[imageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(imageKey, fileName)}/>
                             </div>
                         ) : <div className="text-sm font-bold bg-red-100 border-2 border-red-500 text-red-700 p-2">Image upload not available for this field.</div>
@@ -1068,27 +1049,15 @@ const App: React.FC = () => {
                                                                 <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">
                                                                     PENGUMUMAN {toRoman(index + 1)}
                                                                 </h3>
-                                                                <div className="flex items-center gap-2">
-                                                                    <button onClick={() => handleModeChange(pKey, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode"><TextIcon className="w-4 h-4" /></button>
-                                                                    <button onClick={() => handleModeChange(pKey, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode"><ImageIcon className="w-4 h-4" /></button>
-                                                                </div>
                                                             </div>
                                                             <div className="animate-fadeIn">
+                                                                {renderContentToolbar(currentMode, pKey, (m) => handleModeChange(pKey, m))}
                                                                 {currentMode === 'text' ? (
                                                                     <>
-                                                                        <div className="flex justify-between items-center mb-1">
-                                                                            <label htmlFor={pKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
-                                                                            <div className="flex gap-1 items-center">
-                                                                                <button onClick={() => handleFormat(pKey, 'b')} title="Bold" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><BoldIcon className="w-4 h-4" /></button>
-                                                                                <button onClick={() => handleFormat(pKey, 'i')} title="Italic" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><ItalicIcon className="w-4 h-4" /></button>
-                                                                                <button onClick={() => handleFormat(pKey, 'u')} title="Underline" className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"><UnderlineIcon className="w-4 h-4" /></button>
-                                                                            </div>
-                                                                        </div>
                                                                         <textarea id={pKey} name={pKey} value={(presentationData as any)[pKey] || ''} onChange={handleInputChange} className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
                                                                     </>
                                                                 ) : (
                                                                     <>
-                                                                        <label className="block text-xs font-bold uppercase mb-1 text-brutal-text">Image</label>
                                                                         <FileUpload id={pcKey} onFileSelect={(files) => handleFileChange(pcKey, files)} multiple={false} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[pcKey] || []} onFileRemove={(fileName) => handleFileRemove(pcKey, fileName)} isImage={true} disableImageTools={true} />
                                                                     </>
                                                                 )}
@@ -1134,9 +1103,9 @@ const App: React.FC = () => {
                                         {massType === 'memule' && renderStaticField('A35')} {/* Pengantar */}
 
                                         {/* 2. Lagu Pembuka (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPembuka) && (
-                                            <DynamicSongSection baseKey="A01" textKey="B01" imageKey="C01" label="LAGU PEMBUKA" />
-                                        )}
+                                        {(massType !== 'harian' || harianOptionalSections.showLaguPembuka) && 
+                                            renderDynamicSongSection('A01', 'LAGU PEMBUKA', 'B01', 'C01')
+                                        }
 
                                         {/* 3. Tuhan Kasihanilah Kami (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showTuhanKasihanilahKami) && (
@@ -1157,7 +1126,7 @@ const App: React.FC = () => {
                                         {renderStaticField('A07')}
 
                                         {/* 7. Mazmur Tanggapan Ayat (Dynamic) */}
-                                        <DynamicSongSection baseKey="A08" textKey="B08" imageKey="C08" label="MAZMUR TANGGAPAN (AYAT)" />
+                                        {renderDynamicSongSection('A08', 'MAZMUR TANGGAPAN (AYAT)', 'B08', 'C08')}
 
                                         {/* 8. Bacaan II (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showBacaan2) && renderStaticField('A011')}
@@ -1166,36 +1135,36 @@ const App: React.FC = () => {
                                         {renderStaticField('A012')}
 
                                         {/* 10. Bait Pengantar Injil Ayat (Dynamic) */}
-                                        <DynamicSongSection baseKey="A013" textKey="B013" imageKey="C013" label="BAIT PENGANTAR INJIL (AYAT)" />
+                                        {renderDynamicSongSection('A013', 'BAIT PENGANTAR INJIL (AYAT)', 'B013', 'C013')}
 
                                         {/* 11. Bacaan Injil (Static) */}
                                         {renderStaticField('A014')}
 
                                         {/* 12. Doa Umat (Custom Dynamic Section) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showDoaUmat) && (
-                                            <DoaUmatSection />
-                                        )}
+                                        {(massType !== 'harian' || harianOptionalSections.showDoaUmat) && 
+                                            renderDoaUmatSection()
+                                        }
 
                                         {/* 13. Lagu Persembahan (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPersembahan) && (
-                                            <DynamicSongSection baseKey="A28" textKey="B28" imageKey="C28" label="LAGU PERSEMBAHAN" />
-                                        )}
+                                        {(massType !== 'harian' || harianOptionalSections.showLaguPersembahan) && 
+                                            renderDynamicSongSection('A28', 'LAGU PERSEMBAHAN', 'B28', 'C28')
+                                        }
 
                                         {/* 14. Doa Atas Persembahan (Static) */}
                                         {renderStaticField('A29')}
 
                                         {/* 15. Lagu Komuni (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguKomuni) && (
-                                            <DynamicSongSection baseKey="A30" textKey="B30" imageKey="C30" label="LAGU KOMUNI" />
-                                        )}
+                                        {(massType !== 'harian' || harianOptionalSections.showLaguKomuni) && 
+                                            renderDynamicSongSection('A30', 'LAGU KOMUNI', 'B30', 'C30')
+                                        }
 
                                         {/* 16. Doa Sesudah Komuni (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showDoaSesudahKomuni) && renderStaticField('A33')}
 
                                         {/* 17. Lagu Penutup (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPenutup) && (
-                                            <DynamicSongSection baseKey="A34" textKey="B34" imageKey="C34" label="LAGU PENUTUP" />
-                                        )}
+                                        {(massType !== 'harian' || harianOptionalSections.showLaguPenutup) && 
+                                            renderDynamicSongSection('A34', 'LAGU PENUTUP', 'B34', 'C34')
+                                        }
                                         
                                         {/* 18. Thumbnail B (Memule Only) */}
                                         {massType === 'memule' && renderStaticField('A37')}
