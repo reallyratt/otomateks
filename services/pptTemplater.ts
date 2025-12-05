@@ -7,7 +7,7 @@ const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
 // Global text limit for all fields
-const MAX_TEXT_LENGTH = 80;
+const MAX_TEXT_LENGTH = 130;
 
 // Define XML Namespaces to ensure valid file structure
 const NS_CONTENT_TYPES = 'http://schemas.openxmlformats.org/package/2006/content-types';
@@ -16,11 +16,37 @@ const NS_PRESENTATIONML = 'http://purl.oclc.org/ooxml/presentationml/main';
 const NS_DRAWINGML = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const NS_RELATIONSHIPS_OFFICE_DOC = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
-interface EndingStyle {
-    text: string;
-    bold?: boolean;
-    italic?: boolean;
-}
+// Endings are now simple strings with HTML-like formatting
+const endingsAsHtml: Record<Language, Record<number, string>> = {
+    indonesia: {
+        1: '\n\n<b><i>U: Amin</i></b>',
+        2: '\n\nDemikianlah sabda Tuhan...\n<b><i>U: Syukur kepada Allah</i></b>',
+        3: '',
+        4: '\n\nDemikianlah Sabda Tuhan...\n<b><i>U: Terpujilah Kristus</i></b>',
+        5: ''
+    },
+    jawa: {
+        1: '\n\n<b><i>U: Amin</i></b>',
+        2: '',
+        3: '\n\nMakaten sabda Dalem Gusti...\n<b><i>U: Sembah nyuwun konjuk ing Gusti</i></b>',
+        4: '',
+        5: '\n\nMangkono sabda Dalem Gusti...\n<b><i>U: Pinujia Sang Kristus</i></b>'
+    },
+    english: { 
+        1: '', 2: '', 3: '', 4: '', 5: '' 
+    }
+};
+
+// Map specific B keys to ending types
+const endingMap: Record<string, number> = {
+    'B05': 1,
+    'B29': 1,
+    'B33': 1,
+    'B06': 2,  // Logic handled dynamically in processTemplate for language check
+    'B011': 2, // Logic handled dynamically
+    'B014': 4  // Logic handled dynamically
+};
+
 
 /**
  * Converts a base64 data URL into a Uint8Array.
@@ -56,62 +82,136 @@ const getExtensionFromMime = (mime: string): string => {
 };
 
 /**
- * Smart Chunks a long string into smaller pieces based on punctuation and spaces.
+ * HTML-Aware Chunking function.
+ * Splits text into chunks of maxLength visible characters.
+ * Preserves open tags across splits.
  */
 const chunkText = (text: string | undefined, maxLength: number): string[] => {
     if (!text) return [''];
     
-    const trimmedText = text.trim();
-    if (trimmedText.length <= maxLength) return [trimmedText];
+    // Normalize newlines
+    const rawText = text.trim();
+    if (rawText.length === 0) return [''];
+    
+    // Quick check if raw length is small (even with tags, if it's < limit, it fits)
+    if (rawText.length <= maxLength) return [rawText];
 
     const chunks: string[] = [];
-    let remainingText = trimmedText;
+    let currentChunk = '';
+    let visibleLen = 0;
+    
+    // Stack to track open formatting tags: 'b', 'i', 'u'
+    let openTags: string[] = [];
+    
+    // Tokenizer regex: match tags OR single characters
+    // Capture group 1: full tag including <>
+    // Capture group 2: tag name (b, i, u)
+    const regex = /(<\/?([biu])(?:\s+[^>]*?)?>)|([\s\S])/gi;
+    
+    let match;
+    let lastValidSplitIndex = -1; // Index in the `rawText` where we can split
+    
+    // Helper to get closing tag
+    const getCloseTag = (tag: string) => `</${tag}>`;
+    const getOpenTag = (tag: string) => `<${tag}>`;
 
-    while (remainingText.length > 0) {
-        if (remainingText.length <= maxLength) {
-            chunks.push(remainingText);
-            break;
-        }
-
-        // Define the potential slice
-        const slice = remainingText.substring(0, maxLength);
-        
-        let cutIndex = -1;
-
-        // 1. Punctuation Strategy
-        // Look for punctuation in the "safe zone" (e.g., last 30% of the chunk)
-        // This prevents creating very short chunks just because a period appeared early.
-        const lookback = Math.floor(maxLength * 0.3); 
-        const searchStart = maxLength - lookback;
-        const searchArea = slice.substring(searchStart);
-
-        // Regex to find punctuation followed by a space or end of string.
-        // We capture the punctuation mark to calculate offset correctly.
-        const punctuationMatch = searchArea.match(/([.,:;!?])(\s|$)/);
-
-        if (punctuationMatch && punctuationMatch.index !== undefined) {
-            // Cut AFTER the punctuation mark.
-            // searchStart + matchIndex + 1 (length of punctuation char)
-            cutIndex = searchStart + punctuationMatch.index + 1;
-        }
-
-        // 2. Space Strategy (Fallback)
-        if (cutIndex === -1) {
-            const lastSpaceIndex = slice.lastIndexOf(' ');
-            if (lastSpaceIndex !== -1) {
-                cutIndex = lastSpaceIndex;
+    // We process the string by iterating tokens
+    // Since simple regex iteration makes backtracking hard, we'll manually iterate char by char statefully
+    
+    let i = 0;
+    while (i < rawText.length) {
+        // Check for tag
+        if (rawText[i] === '<') {
+            const tagMatch = rawText.substring(i).match(/^<\/?([biu])(?:\s+[^>]*?)?>/i);
+            if (tagMatch) {
+                const fullTag = tagMatch[0];
+                const tagName = tagMatch[1].toLowerCase();
+                const isClosing = fullTag.startsWith('</');
+                
+                currentChunk += fullTag;
+                
+                if (isClosing) {
+                    // Remove from stack if matches top (simple balancing)
+                    // If not matching top, we just remove the last instance of it for resilience
+                    const idx = openTags.lastIndexOf(tagName);
+                    if (idx !== -1) {
+                        openTags.splice(idx, 1);
+                    }
+                } else {
+                    openTags.push(tagName);
+                }
+                
+                i += fullTag.length;
+                continue;
             }
         }
-
-        // 3. Hard Cut Strategy (Last Resort for extremely long words)
-        if (cutIndex === -1) {
-            cutIndex = maxLength;
+        
+        // Regular character
+        const char = rawText[i];
+        currentChunk += char;
+        visibleLen++;
+        
+        // Update potential split point if it's a separator
+        if (/[\s.,;!?]/.test(char)) {
+            // We record the length of currentChunk so we know where to slice
+            lastValidSplitIndex = currentChunk.length;
         }
 
-        chunks.push(remainingText.substring(0, cutIndex).trim());
-        remainingText = remainingText.substring(cutIndex).trim();
+        i++;
+
+        // CHECK LIMIT
+        if (visibleLen >= maxLength) {
+            // Need to split
+            let splitPoint = -1;
+
+            // 1. Punctuation/Space priority
+            if (lastValidSplitIndex !== -1 && lastValidSplitIndex < currentChunk.length) {
+                splitPoint = lastValidSplitIndex;
+            } else {
+                // Hard cut
+                splitPoint = currentChunk.length;
+            }
+            
+            // Extract the part for this slide
+            let chunkContent = currentChunk.substring(0, splitPoint);
+            let remainder = currentChunk.substring(splitPoint);
+            
+            // Close any tags open at the end of this chunk
+            const closingTags = [...openTags].reverse().map(getCloseTag).join('');
+            chunkContent += closingTags;
+            
+            chunks.push(chunkContent.trim());
+            
+            // Prepare next chunk
+            // Re-open tags for the remainder
+            const openingTags = openTags.map(getOpenTag).join('');
+            currentChunk = openingTags + remainder.trimStart(); // Trim start of next chunk to avoid leading spaces
+            
+            // Reset counters (approximate visible len for remainder)
+            // Re-calculating exact visible len of remainder is safer but O(N^2) worst case.
+            // Given text length is small (PPT slides), it's fine.
+            // Let's just reset and continue processing, but 'currentChunk' now has pre-pended tags.
+            // We need to NOT double count the pre-pended tags. 
+            // The loop continues from 'i', but 'currentChunk' already has content.
+            // This loop structure is tricky.
+            
+            // SIMPLER APPROACH:
+            // Break the loop, recurse or reset fully?
+            // Resetting `visibleLen` based on `remainder` (without tags) is needed.
+            
+            // Calculate visible length of the new `currentChunk` (which is tags + remainder)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = currentChunk;
+            visibleLen = tempDiv.textContent?.length || 0;
+            
+            lastValidSplitIndex = -1;
+        }
     }
     
+    if (currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+    }
+
     return chunks;
 };
 
@@ -469,103 +569,12 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
     }
 };
 
-const addFormattedEnding = (doc: XMLDocument, textNode: Element, endingLines: EndingStyle[]) => {
-    let pNode = textNode.parentNode;
-    while(pNode && (pNode as Element).localName !== 'p') {
-        pNode = pNode.parentNode;
-    }
-    if (!pNode || (pNode as Element).localName !== 'p') return;
-    
-    const txBody = pNode.parentNode as Element;
-    if (!txBody) return; // Must be inside a txBody
-
-    // Clone pPr (Paragraph Properties) from the original text to maintain alignment/indentation
-    const pPr = getDirectChildByLocalName(pNode as Element, 'pPr');
-    
-    // 1. Add Spacer Paragraph (Empty Line)
-    const spacerP = doc.createElementNS(NS_DRAWINGML, 'a:p');
-    if (pPr) spacerP.appendChild(pPr.cloneNode(true));
-    // Add empty text run to ensure height
-    const spacerR = doc.createElementNS(NS_DRAWINGML, 'a:r');
-    const spacerT = doc.createElementNS(NS_DRAWINGML, 'a:t');
-    spacerT.textContent = ' '; 
-    spacerR.appendChild(spacerT);
-    spacerP.appendChild(spacerR);
-    txBody.appendChild(spacerP);
-
-    // 2. Add Ending Lines
-    endingLines.forEach(line => {
-        const lineP = doc.createElementNS(NS_DRAWINGML, 'a:p');
-        if (pPr) lineP.appendChild(pPr.cloneNode(true));
-        
-        const r = doc.createElementNS(NS_DRAWINGML, 'a:r');
-        
-        // Handle Style (Bold/Italic)
-        const rPr = doc.createElementNS(NS_DRAWINGML, 'a:rPr');
-        const sourceR = textNode.parentNode as Element;
-        const sourceRPr = getDirectChildByLocalName(sourceR, 'rPr');
-        
-        let targetRPr: Element;
-
-        if (sourceRPr) {
-             targetRPr = sourceRPr.cloneNode(true) as Element;
-             targetRPr.removeAttribute('dirty'); // Clean dirty flag
-             
-             if (line.bold) targetRPr.setAttribute('b', '1'); 
-             else targetRPr.removeAttribute('b');
-             
-             if (line.italic) targetRPr.setAttribute('i', '1'); 
-             else targetRPr.removeAttribute('i');
-        } else {
-             targetRPr = rPr;
-             if (line.bold) targetRPr.setAttribute('b', '1');
-             if (line.italic) targetRPr.setAttribute('i', '1');
-        }
-        r.appendChild(targetRPr);
-
-        const t = doc.createElementNS(NS_DRAWINGML, 'a:t');
-        t.textContent = line.text;
-        r.appendChild(t);
-        lineP.appendChild(r);
-        txBody.appendChild(lineP);
-    });
-}
-
 export const processTemplate = async (data: PresentationData, templateFile: File, language: Language) => {
-    const endings: Record<Language, Record<number, EndingStyle[]>> = {
-        indonesia: {
-            1: [{ text: 'U: Amin', bold: true, italic: true }],
-            2: [
-                { text: 'Demikianlah sabda Tuhan...', bold: false, italic: false },
-                { text: 'U: Syukur kepada Allah', bold: true, italic: true }
-            ],
-            3: [],
-            4: [
-                 { text: 'Demikianlah Sabda Tuhan...', bold: false, italic: false },
-                 { text: 'U: Terpujilah Kristus', bold: true, italic: true }
-            ],
-            5: []
-        },
-        jawa: {
-            1: [{ text: 'U: Amin', bold: true, italic: true }],
-            2: [],
-            3: [
-                { text: 'Makaten sabda Dalem Gusti...', bold: false, italic: false },
-                { text: 'U: Sembah nyuwun konjuk ing Gusti', bold: true, italic: true }
-            ],
-            4: [],
-            5: [
-                { text: 'Mangkono sabda Dalem Gusti...', bold: false, italic: false },
-                { text: 'U: Pinujia Sang Kristus', bold: true, italic: true }
-            ]
-        },
-        english: { 
-            1: [], 2: [], 3: [], 4: [], 5: [] 
-        }
-    };
+    // 1. PRE-PROCESSING: Append endings to the data strings
+    const modifiedData = { ...data };
     
-    // Map specific B keys to ending types
-    const endingMap: Record<string, number> = {
+    // Resolve dynamic keys in endingMap based on language
+    const currentEndingMap: Record<string, number> = {
         'B05': 1,
         'B29': 1,
         'B33': 1,
@@ -573,6 +582,15 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         'B011': language === 'indonesia' ? 2 : 3,
         'B014': language === 'indonesia' ? 4 : 5
     };
+
+    for (const [key, endingId] of Object.entries(currentEndingMap)) {
+        if (modifiedData[key] && typeof modifiedData[key] === 'string') {
+            const endingHtml = endingsAsHtml[language][endingId];
+            if (endingHtml) {
+                modifiedData[key] = (modifiedData[key] as string).trimEnd() + endingHtml;
+            }
+        }
+    }
 
     const zip = await JSZip.loadAsync(templateFile);
     const presXmlStr = await zip.file('ppt/presentation.xml').async('string');
@@ -608,7 +626,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
 
         // Check for Image Placeholders (C or T keys)
         const { key: imageKey, shape: imageShape } = findImagePlaceholder(slideXmlDoc);
-        const images = (imageKey && data[imageKey] && Array.isArray(data[imageKey])) ? data[imageKey] as string[] : [];
+        const images = (imageKey && modifiedData[imageKey] && Array.isArray(modifiedData[imageKey])) ? modifiedData[imageKey] as string[] : [];
 
         if (imageKey && imageShape) {
              if (images.length > 0) {
@@ -624,7 +642,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                         await modifyShapeForImage(currentShape, imageRId, imageBase64);
                     }
                     
-                    replaceSimplePlaceholders(currentSlideXmlDoc, data, null);
+                    replaceSimplePlaceholders(currentSlideXmlDoc, modifiedData, null);
                     
                     if (isOriginalSlide) {
                         zip.file(slidePath, serializer.serializeToString(currentSlideXmlDoc));
@@ -674,9 +692,8 @@ export const processTemplate = async (data: PresentationData, templateFile: File
             let keysToProcess: string[] = [];
             
             if (pPlaceholderMatch) {
-                // Find indices from both P (Text) and PC (Image) keys
-                const pKeys = Object.keys(data).filter(k => /^P\d+$/.test(k));
-                const pcKeys = Object.keys(data).filter(k => /^PC\d+$/.test(k));
+                const pKeys = Object.keys(modifiedData).filter(k => /^P\d+$/.test(k));
+                const pcKeys = Object.keys(modifiedData).filter(k => /^PC\d+$/.test(k));
                 
                 const indices = new Set<string>();
                 [...pKeys, ...pcKeys].forEach(k => {
@@ -685,14 +702,13 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 });
                 keysToProcess = Array.from(indices).sort().map(i => `Announce_${i}`);
             } else if (weddingPlaceholderMatch) {
-                // Find all keys that look like UP01, UPS01, UP02, etc. and extract unique indices
-                const weddingKeys = Object.keys(data).filter(k => /^(UP|UPS)\d+$/.test(k));
+                const weddingKeys = Object.keys(modifiedData).filter(k => /^(UP|UPS)\d+$/.test(k));
                 const indices = new Set<string>();
                 weddingKeys.forEach(k => {
                     const match = k.match(/(\d+)$/);
                     if (match) indices.add(match[1]);
                 });
-                keysToProcess = Array.from(indices).sort().map(i => `Wedding_${i}`); // Dummy keys for loop
+                keysToProcess = Array.from(indices).sort().map(i => `Wedding_${i}`);
             }
 
             if (keysToProcess.length > 0) {
@@ -702,25 +718,22 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                     const currentSlideXmlDoc = (isOriginalSlide) ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
                     const currentSlideRelsXmlDoc = (isOriginalSlide) ? slideRelsXmlDoc : parser.parseFromString(slideRelsStr, 'application/xml');
                     
-                    let localData: PresentationData = { ...data };
+                    let localData: PresentationData = { ...modifiedData };
                     
-                    // Variables to handle P-key text splitting inside duplication
                     let splittableKey: string | null = null;
                     let textChunks: string[] = [];
 
                     if (pPlaceholderMatch) {
-                         const indexStr = keysToProcess[i].split('_')[1]; // e.g. "01", "02"
+                         const indexStr = keysToProcess[i].split('_')[1];
                          const textKey = `P${indexStr}`;
                          const imageKey = `PC${indexStr}`;
 
-                         const textContent = data[textKey];
-                         const imageContent = (data[imageKey] && Array.isArray(data[imageKey])) ? data[imageKey] : null;
+                         const textContent = modifiedData[textKey];
+                         const imageContent = (modifiedData[imageKey] && Array.isArray(modifiedData[imageKey])) ? modifiedData[imageKey] : null;
 
-                         // Map current index data to 01 placeholders
                          if (imageContent && imageContent.length > 0) {
-                            // IMAGE MODE
                             localData['PC01'] = imageContent;
-                            localData['P01'] = ''; // Clear text placeholder
+                            localData['P01'] = ''; 
                             
                             const { shape: currentShape } = findImagePlaceholder(currentSlideXmlDoc);
                             if (currentShape) {
@@ -731,29 +744,27 @@ export const processTemplate = async (data: PresentationData, templateFile: File
 
                             removeShapeContainingText(currentSlideXmlDoc, "PENGUMUMAN PAROKI MINGGU INI");
                          } else {
-                            // TEXT MODE
                             let finalContent = textContent as string || '';
-                            const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(finalContent);
                             
-                            // Check if splitting is needed for this specific announcement slide
-                            if (!hasFormatting && finalContent.length > MAX_TEXT_LENGTH) {
+                            // Always attempt chunking for Pengumuman text if too long
+                            // chunkText handles HTML tags for us now
+                            if (finalContent.length > MAX_TEXT_LENGTH) {
                                 splittableKey = 'P01';
-                                localData['P01'] = finalContent; // Placeholder, will be replaced by chunking logic below
+                                localData['P01'] = finalContent;
                                 textChunks = chunkText(finalContent, MAX_TEXT_LENGTH);
                             } else {
                                 localData['P01'] = finalContent;
                             }
                             
-                            // Remove Image Placeholder Shape
                             const { shape: imageShape } = findImagePlaceholder(currentSlideXmlDoc);
                             if (imageShape && imageShape.parentNode) {
                                 imageShape.parentNode.removeChild(imageShape);
                             }
                          }
                     } else if (weddingPlaceholderMatch) {
-                        const indexStr = keysToProcess[i].split('_')[1]; // e.g. "01", "02"
+                        const indexStr = keysToProcess[i].split('_')[1];
                         const photoKey = `T${indexStr}`;
-                        const hasPhoto = data[photoKey] && Array.isArray(data[photoKey]) && data[photoKey].length > 0;
+                        const hasPhoto = modifiedData[photoKey] && Array.isArray(modifiedData[photoKey]) && modifiedData[photoKey].length > 0;
 
                         ['UP', 'VP', 'UW', 'VW', 'UPS', 'VPS', 'UWS', 'VWS', 'T', 'W', 'TS'].forEach(prefix => {
                             const sourceKey = `${prefix}${indexStr}`;
@@ -771,15 +782,14 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                                 }
                             }
 
-                            if (data[sourceKey] !== undefined) {
-                                localData[targetKey] = data[sourceKey];
+                            if (modifiedData[sourceKey] !== undefined) {
+                                localData[targetKey] = modifiedData[sourceKey];
                             } else {
                                 localData[targetKey] = ''; 
                             }
                         });
                     }
                     
-                    // IF we have chunks, we need to create sub-slides for this announcement
                     if (splittableKey && textChunks.length > 0) {
                         for (let c = 0; c < textChunks.length; c++) {
                             const isSubSlideOriginal = isOriginalSlide && c === 0;
@@ -789,7 +799,20 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                             
                             getElementsByLocalName(subSlideXmlDoc, 't').forEach(node => {
                                 if (node.textContent?.includes(`{{${splittableKey}}}`)) {
-                                    node.textContent = node.textContent.replace(`{{${splittableKey}}}`, textChunks[c]);
+                                    // Use applyFormattedTextToRun if chunk has tags
+                                    const chunkVal = textChunks[c];
+                                    const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(chunkVal);
+                                    
+                                    if (hasFormatting) {
+                                        const parentRun = node.parentNode as Element;
+                                        if (parentRun && parentRun.localName === 'r') {
+                                            applyFormattedTextToRun(subSlideXmlDoc, parentRun, chunkVal);
+                                        } else {
+                                            node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
+                                        }
+                                    } else {
+                                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
+                                    }
                                 }
                             });
 
@@ -826,7 +849,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                         }
 
                     } else {
-                        // STANDARD HANDLING (No Text Splitting in this duplication loop)
                         replaceSimplePlaceholders(currentSlideXmlDoc, localData, null);
 
                         if (isOriginalSlide) {
@@ -861,12 +883,11 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                         }
                     }
 
-                    // SEPARATOR SLIDE LOGIC FOR PENGUMUMAN
                     if (pPlaceholderMatch && i < keysToProcess.length - 1) {
                         const separatorSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
                         const separatorSlideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
                         
-                        const separatorData: PresentationData = { ...data, P01: '' };
+                        const separatorData: PresentationData = { ...modifiedData, P01: '' };
                         const { shape: sepImageShape } = findImagePlaceholder(separatorSlideXmlDoc);
                         if (sepImageShape && sepImageShape.parentNode) {
                             sepImageShape.parentNode.removeChild(sepImageShape);
@@ -915,17 +936,14 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 const match = node.textContent.match(/{{(B[0-9]+)}}/);
                 if (match) {
                     const key = match[1];
-                    const textValue = data[key];
+                    const textValue = modifiedData[key];
                     if (typeof textValue === 'string') {
-                        // Check for rich text formatting
-                        const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(textValue);
-                        
-                        if (!hasFormatting) {
-                            if (textValue.length > MAX_TEXT_LENGTH) {
-                                splittableKey = key;
-                                chunks = chunkText(textValue, MAX_TEXT_LENGTH);
-                                break;
-                            }
+                        // All text is subject to chunking if it exceeds length
+                        // We check visible length using chunkText (which handles HTML tags correctly now)
+                        if (textValue.replace(/<[^>]+>/g, '').length > MAX_TEXT_LENGTH) {
+                            splittableKey = key;
+                            chunks = chunkText(textValue, MAX_TEXT_LENGTH);
+                            break;
                         }
                     }
                 }
@@ -935,23 +953,24 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         if (splittableKey && chunks.length > 1) {
              for (let i = 0; i < chunks.length; i++) {
                 const isOriginalSlide = i === 0;
-                const isLastSlide = i === chunks.length - 1;
                 const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
 
-                replaceSimplePlaceholders(currentSlideXmlDoc, data, splittableKey);
+                replaceSimplePlaceholders(currentSlideXmlDoc, modifiedData, splittableKey);
                 
                 getElementsByLocalName(currentSlideXmlDoc, 't').forEach(node => {
                     if (node.textContent?.includes(`{{${splittableKey}}}`)) {
-                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunks[i]);
+                        const chunkVal = chunks[i];
+                        const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(chunkVal);
                         
-                        if (isLastSlide) {
-                             const endingType = endingMap[splittableKey as string];
-                             if (endingType) {
-                                 const style = endings[language][endingType];
-                                 if (style && style.length > 0) {
-                                     addFormattedEnding(currentSlideXmlDoc, node, style);
-                                 }
-                             }
+                        if (hasFormatting) {
+                            const parentRun = node.parentNode as Element;
+                            if (parentRun && parentRun.localName === 'r') {
+                                applyFormattedTextToRun(currentSlideXmlDoc, parentRun, chunkVal);
+                            } else {
+                                node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
+                            }
+                        } else {
+                             node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
                         }
                     }
                 });
@@ -987,29 +1006,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
             }
         } else {
             // Simple slide (no splitting required)
-            const tNodes = getElementsByLocalName(slideXmlDoc, 't');
-            const endingTargets: { node: Element, endingStyle: EndingStyle[] }[] = [];
-            
-            tNodes.forEach(node => {
-               const match = node.textContent?.match(/{{(B[0-9]+)}}/);
-               if (match) {
-                   const key = match[1];
-                   const endingType = endingMap[key];
-                   if (endingType) {
-                       const style = endings[language][endingType];
-                       if (style && style.length > 0) {
-                           endingTargets.push({ node, endingStyle: style });
-                       }
-                   }
-               }
-            });
-
-            replaceSimplePlaceholders(slideXmlDoc, data, splittableKey);
-
-            endingTargets.forEach(({ node, endingStyle }) => {
-                addFormattedEnding(slideXmlDoc, node, endingStyle);
-            });
-
+            replaceSimplePlaceholders(slideXmlDoc, modifiedData, null);
             zip.file(slidePath, serializer.serializeToString(slideXmlDoc));
             newSlideIdNodes.push(sldId.cloneNode(true));
         }
