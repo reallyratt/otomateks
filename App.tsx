@@ -970,50 +970,80 @@ const App: React.FC = () => {
                                             <div className="space-y-6">
                                                 {Array.from({ length: announcementCount }).map((_, index) => {
                                                     const pKey = `P${(index + 1).toString().padStart(2, '0')}`;
+                                                    const pcKey = `PC${(index + 1).toString().padStart(2, '0')}`;
+                                                    const currentMode = inputModes[pKey] || 'text';
+
                                                     return (
                                                         <div key={pKey} className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
                                                             <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
                                                                 <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">
                                                                     PENGUMUMAN {toRoman(index + 1)}
                                                                 </h3>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button onClick={() => handleModeChange(pKey, 'text')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'text' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Text Mode">
+                                                                        <TextIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleModeChange(pKey, 'image')} className={`p-2 border-2 border-brutal-border font-bold text-xs uppercase transition ${currentMode === 'image' ? 'bg-brutal-border text-brutal-bg' : 'bg-brutal-surface text-brutal-text hover:bg-gray-200'}`} aria-label="Switch to Image Mode">
+                                                                        <ImageIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                             <div className="animate-fadeIn">
-                                                                <div className="flex justify-between items-center mb-1">
-                                                                    <label htmlFor={pKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
-                                                                    <div className="flex gap-1 items-center">
-                                                                        <button 
-                                                                            onClick={() => handleFormat(pKey, 'b')} 
-                                                                            title="Bold" 
-                                                                            className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
-                                                                            aria-label="Bold Text"
-                                                                        >
-                                                                            <BoldIcon className="w-4 h-4" />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => handleFormat(pKey, 'i')} 
-                                                                            title="Italic" 
-                                                                            className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
-                                                                            aria-label="Italic Text"
-                                                                        >
-                                                                            <ItalicIcon className="w-4 h-4" />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => handleFormat(pKey, 'u')} 
-                                                                            title="Underline" 
-                                                                            className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
-                                                                            aria-label="Underline Text"
-                                                                        >
-                                                                            <UnderlineIcon className="w-4 h-4" />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                <textarea
-                                                                    id={pKey}
-                                                                    name={pKey}
-                                                                    value={(presentationData as any)[pKey] || ''}
-                                                                    onChange={handleInputChange}
-                                                                    className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"
-                                                                />
+                                                                {currentMode === 'text' ? (
+                                                                    <>
+                                                                        <div className="flex justify-between items-center mb-1">
+                                                                            <label htmlFor={pKey} className="block text-xs font-bold uppercase text-brutal-text">Text</label>
+                                                                            <div className="flex gap-1 items-center">
+                                                                                <button 
+                                                                                    onClick={() => handleFormat(pKey, 'b')} 
+                                                                                    title="Bold" 
+                                                                                    className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
+                                                                                    aria-label="Bold Text"
+                                                                                >
+                                                                                    <BoldIcon className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button 
+                                                                                    onClick={() => handleFormat(pKey, 'i')} 
+                                                                                    title="Italic" 
+                                                                                    className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
+                                                                                    aria-label="Italic Text"
+                                                                                >
+                                                                                    <ItalicIcon className="w-4 h-4" />
+                                                                                </button>
+                                                                                <button 
+                                                                                    onClick={() => handleFormat(pKey, 'u')} 
+                                                                                    title="Underline" 
+                                                                                    className="p-1 border-2 border-brutal-border hover:bg-brutal-border hover:text-brutal-bg transition text-brutal-text"
+                                                                                    aria-label="Underline Text"
+                                                                                >
+                                                                                    <UnderlineIcon className="w-4 h-4" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <textarea
+                                                                            id={pKey}
+                                                                            name={pKey}
+                                                                            value={(presentationData as any)[pKey] || ''}
+                                                                            onChange={handleInputChange}
+                                                                            className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"
+                                                                        />
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <label className="block text-xs font-bold uppercase mb-1 text-brutal-text">Image</label>
+                                                                        <FileUpload
+                                                                            id={pcKey}
+                                                                            onFileSelect={(files) => handleFileChange(pcKey, files)}
+                                                                            multiple={false}
+                                                                            accept="image/*"
+                                                                            label="UPLOAD IMAGE"
+                                                                            files={uploadedFiles[pcKey] || []}
+                                                                            onFileRemove={(fileName) => handleFileRemove(pcKey, fileName)}
+                                                                            isImage={true}
+                                                                            disableImageTools={true}
+                                                                        />
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );
@@ -1111,7 +1141,7 @@ const App: React.FC = () => {
                                                     // Secondary (No Image) keys
                                                     const upsKey = `UPS${suffix}`;
                                                     const vpsKey = `VPS${suffix}`;
-                                                    const tsKey = `TS${suffix}`;
+                                                    // const tsKey = `TS${suffix}`; // Hidden as per request
                                                     const uwsKey = `UWS${suffix}`;
                                                     const vwsKey = `VWS${suffix}`;
 
@@ -1195,10 +1225,12 @@ const App: React.FC = () => {
                                                                             </div>
                                                                         </div>
                                                                         
+                                                                        {/* Hidden as per request
                                                                         <div className="col-span-1 sm:col-span-2">
                                                                              <label htmlFor={tsKey} className="block text-[10px] font-bold uppercase mb-1">TEKS DENGAN</label>
                                                                              <input type="text" id={tsKey} name={tsKey} value={(presentationData as any)[tsKey] || 'dengan'} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none"/>
                                                                         </div>
+                                                                        */}
 
                                                                          <div className="space-y-2">
                                                                             <label className="block text-xs font-bold uppercase bg-brutal-accent text-white px-1 w-fit border border-brutal-border">PENGANTIN WANITA</label>
