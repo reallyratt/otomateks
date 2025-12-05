@@ -19,18 +19,18 @@ const NS_RELATIONSHIPS_OFFICE_DOC = 'http://schemas.openxmlformats.org/officeDoc
 // Endings are now simple strings with HTML-like formatting
 const endingsAsHtml: Record<Language, Record<number, string>> = {
     indonesia: {
-        1: '\n\n<b><i>U: Amin</i></b>',
-        2: '\n\nDemikianlah sabda Tuhan...\n<b><i>U: Syukur kepada Allah</i></b>',
+        1: '<b><i>U: Amin</i></b>',
+        2: 'Demikianlah sabda Tuhan...\n<b><i>U: Syukur kepada Allah</i></b>',
         3: '',
-        4: '\n\nDemikianlah Sabda Tuhan...\n<b><i>U: Terpujilah Kristus</i></b>',
+        4: 'Demikianlah Sabda Tuhan...\n<b><i>U: Terpujilah Kristus</i></b>',
         5: ''
     },
     jawa: {
-        1: '\n\n<b><i>U: Amin</i></b>',
+        1: '<b><i>U: Amin</i></b>',
         2: '',
-        3: '\n\nMakaten sabda Dalem Gusti...\n<b><i>U: Sembah nyuwun konjuk ing Gusti</i></b>',
+        3: 'Makaten sabda Dalem Gusti...\n<b><i>U: Sembah nyuwun konjuk ing Gusti</i></b>',
         4: '',
-        5: '\n\nMangkono sabda Dalem Gusti...\n<b><i>U: Pinujia Sang Kristus</i></b>'
+        5: 'Mangkono sabda Dalem Gusti...\n<b><i>U: Pinujia Sang Kristus</i></b>'
     },
     english: { 
         1: '', 2: '', 3: '', 4: '', 5: '' 
@@ -188,18 +188,6 @@ const chunkText = (text: string | undefined, maxLength: number): string[] => {
             currentChunk = openingTags + remainder.trimStart(); // Trim start of next chunk to avoid leading spaces
             
             // Reset counters (approximate visible len for remainder)
-            // Re-calculating exact visible len of remainder is safer but O(N^2) worst case.
-            // Given text length is small (PPT slides), it's fine.
-            // Let's just reset and continue processing, but 'currentChunk' now has pre-pended tags.
-            // We need to NOT double count the pre-pended tags. 
-            // The loop continues from 'i', but 'currentChunk' already has content.
-            // This loop structure is tricky.
-            
-            // SIMPLER APPROACH:
-            // Break the loop, recurse or reset fully?
-            // Resetting `visibleLen` based on `remainder` (without tags) is needed.
-            
-            // Calculate visible length of the new `currentChunk` (which is tags + remainder)
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = currentChunk;
             visibleLen = tempDiv.textContent?.length || 0;
@@ -285,9 +273,9 @@ const findImagePlaceholder = (slideXmlDoc: XMLDocument): { key: string | null; s
         }
         
         // Regex for C01.., T01.., or PC01..
-        const match = fullText.match(/{{\s*([CT]|PC)([0-9]+)\s*}}/);
+        const match = fullText.match(/{{\s*([CT]|PC)([0-9]+(_\d+)?)\s*}}/);
         if (match) {
-            const key = match[1] + match[2]; // e.g. "PC01"
+            const key = match[1] + match[2]; // e.g. "PC01", "C01_2"
             return { key, shape };
         }
     }
@@ -540,7 +528,7 @@ const replaceSimplePlaceholders = (slideXmlDoc: XMLDocument, data: PresentationD
 
     textNodes.forEach(node => {
         if (!node.textContent) return;
-        const regex = /{{([a-zA-Z0-9]+)}}/;
+        const regex = /{{([a-zA-Z0-9_]+)}}/;
         const match = node.textContent.match(regex);
         if (match) {
             targets.push({ node, match, key: match[1] });
@@ -587,7 +575,9 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         if (modifiedData[key] && typeof modifiedData[key] === 'string') {
             const endingHtml = endingsAsHtml[language][endingId];
             if (endingHtml) {
-                modifiedData[key] = (modifiedData[key] as string).trimEnd() + endingHtml;
+                // Prepend \n if existing text is not empty
+                const existing = (modifiedData[key] as string).trimEnd();
+                modifiedData[key] = existing + (existing ? '\n' : '') + endingHtml;
             }
         }
     }
@@ -623,6 +613,364 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         const slideRelsPath = slidePath.replace('slides/', 'slides/_rels/') + '.rels';
         const slideRelsStr = await zip.file(slideRelsPath)?.async('string') || `<Relationships xmlns="${NS_RELATIONSHIPS}"></Relationships>`;
         const slideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
+
+        // --- Dynamic Field Duplication (Songs, BPI Ayat, Doa Umat, Mazmur) ---
+        // Check if this slide handles extensible songs (B01, B08, B13, B28, B30, B34)
+        
+        const expandableFields = ['B01', 'B08', 'B013', 'B28', 'B30', 'B34'];
+        let expansionKey = expandableFields.find(key => slideXmlStr.includes(`{{${key}}}`));
+        
+        if (expansionKey) {
+            // Extract the numeric/alpha part
+            const baseSuffix = expansionKey.substring(1); // "01", "08", "013", etc
+            const matchingKeys = Object.keys(modifiedData).filter(k => k.startsWith(`B${baseSuffix}_`));
+            
+            // Collect indices
+            const indices: number[] = [];
+            matchingKeys.forEach(k => {
+                const parts = k.split('_');
+                if (parts.length > 1) indices.push(parseInt(parts[1], 10));
+            });
+            indices.sort((a,b) => a-b);
+            
+            const allIndices = [1, ...indices];
+            
+            for (let i = 0; i < allIndices.length; i++) {
+                const idx = allIndices[i];
+                const isOriginalSlide = i === 0;
+                
+                const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
+                const currentSlideRelsXmlDoc = isOriginalSlide ? slideRelsXmlDoc : parser.parseFromString(slideRelsStr, 'application/xml');
+
+                // Map data for this slide instance
+                const localData = { ...modifiedData };
+                
+                if (idx > 1) {
+                    ['A', 'B', 'C'].forEach(prefix => {
+                        const baseKey = `${prefix}${baseSuffix}`;
+                        const targetKey = `${prefix}${baseSuffix}_${idx}`;
+                        if (modifiedData[targetKey] !== undefined) {
+                            localData[baseKey] = modifiedData[targetKey];
+                        } else {
+                            // If title (A) is missing for suffix, reuse base title
+                            if (prefix === 'A') localData[baseKey] = modifiedData[baseKey]; 
+                            else localData[baseKey] = ''; 
+                        }
+                    });
+                }
+                
+                const processInnerSlide = async (finalXml: XMLDocument, finalRels: XMLDocument, data: PresentationData, isBase: boolean) => {
+                     // Check for Text Splitting (B keys)
+                    let splittableKey: string | null = null;
+                    let chunks: string[] = [];
+                    const textNodes = getElementsByLocalName(finalXml, 't');
+                    
+                    for (const node of textNodes) {
+                        if (node.textContent) {
+                            const match = node.textContent.match(/{{(B[0-9]+)}}/);
+                            if (match) {
+                                const key = match[1];
+                                const textValue = data[key];
+                                if (typeof textValue === 'string') {
+                                    if (textValue.replace(/<[^>]+>/g, '').length > MAX_TEXT_LENGTH) {
+                                        splittableKey = key;
+                                        chunks = chunkText(textValue, MAX_TEXT_LENGTH);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (splittableKey && chunks.length > 1) {
+                        for (let c = 0; c < chunks.length; c++) {
+                            const isFirstChunk = c === 0;
+                            // If base slide, reuse id, else create new
+                            const chunkXml = isFirstChunk ? finalXml : parser.parseFromString(serializer.serializeToString(finalXml), 'application/xml');
+                            
+                            replaceSimplePlaceholders(chunkXml, data, splittableKey);
+                            getElementsByLocalName(chunkXml, 't').forEach(node => {
+                                if (node.textContent?.includes(`{{${splittableKey}}}`)) {
+                                    const chunkVal = chunks[c];
+                                    const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(chunkVal);
+                                    if (hasFormatting) {
+                                        const parentRun = node.parentNode as Element;
+                                        if (parentRun && parentRun.localName === 'r') {
+                                            applyFormattedTextToRun(chunkXml, parentRun, chunkVal);
+                                        }
+                                    } else {
+                                        node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
+                                    }
+                                }
+                            });
+
+                            if (isBase && isFirstChunk) {
+                                zip.file(slidePath, serializer.serializeToString(chunkXml));
+                                newSlideIdNodes.push(sldId.cloneNode(true));
+                            } else {
+                                const newSlideNum = nextAvailableSlideNum++;
+                                const newSlideId = nextAvailableSlideId++;
+                                const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                                const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                                
+                                zip.file(newSlidePath, serializer.serializeToString(chunkXml));
+                                const relsStr = serializer.serializeToString(finalRels); // Use passed rels
+                                zip.file(newSlidePath.replace('slides/', 'slides/_rels/') + '.rels', relsStr);
+
+                                const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                                newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                                newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                                contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                                
+                                const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                                newPresRel.setAttribute('Id', newPresRelId);
+                                newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                                newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                                presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                                
+                                const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                                newSldIdNode.setAttribute('id', String(newSlideId));
+                                newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                                newSlideIdNodes.push(newSldIdNode);
+                            }
+                        }
+                    } else {
+                        replaceSimplePlaceholders(finalXml, data, null);
+                        if (isBase) {
+                            zip.file(slidePath, serializer.serializeToString(finalXml));
+                            newSlideIdNodes.push(sldId.cloneNode(true));
+                        } else {
+                             const newSlideNum = nextAvailableSlideNum++;
+                             const newSlideId = nextAvailableSlideId++;
+                             const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                             const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                             
+                             zip.file(newSlidePath, serializer.serializeToString(finalXml));
+                             const relsStr = serializer.serializeToString(finalRels);
+                             zip.file(newSlidePath.replace('slides/', 'slides/_rels/') + '.rels', relsStr);
+
+                             const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                             newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                             newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                             contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                             
+                             const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                             newPresRel.setAttribute('Id', newPresRelId);
+                             newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                             newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                             presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                             
+                             const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                             newSldIdNode.setAttribute('id', String(newSlideId));
+                             newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                             newSlideIdNodes.push(newSldIdNode);
+                        }
+                    }
+                }
+
+                // Image Handling
+                const { key: imageKey, shape: imageShape } = findImagePlaceholder(currentSlideXmlDoc);
+                const images = (imageKey && localData[imageKey] && Array.isArray(localData[imageKey])) ? localData[imageKey] as string[] : [];
+
+                if (imageKey && imageShape && images.length > 0) {
+                     for (let j = 0; j < images.length; j++) {
+                        const isImgOriginal = j === 0;
+                        const imgXml = isImgOriginal ? currentSlideXmlDoc : parser.parseFromString(serializer.serializeToString(currentSlideXmlDoc), 'application/xml');
+                        const imgRels = isImgOriginal ? currentSlideRelsXmlDoc : parser.parseFromString(serializer.serializeToString(currentSlideRelsXmlDoc), 'application/xml');
+                        const imgShape = isImgOriginal ? imageShape : findImagePlaceholder(imgXml).shape;
+
+                        if (imgShape) {
+                            const imageBase64 = images[j];
+                            const imageRId = await addImageToPackage(zip, imgRels, contentTypesXmlDoc, imageBase64);
+                            await modifyShapeForImage(imgShape, imageRId, imageBase64);
+                        }
+                        
+                        await processInnerSlide(imgXml, imgRels, localData, isOriginalSlide && isImgOriginal);
+                     }
+                } else {
+                     if (imageKey && imageShape && imageShape.parentNode) {
+                        imageShape.parentNode.removeChild(imageShape);
+                     }
+                     await processInnerSlide(currentSlideXmlDoc, currentSlideRelsXmlDoc, localData, isOriginalSlide);
+                }
+
+                // SEPARATOR SLIDE LOGIC
+                // If it's NOT Mazmur (B08) and NOT the last item in the dynamic list, insert a separator slide
+                if (expansionKey !== 'B08' && i < allIndices.length - 1) {
+                    const separatorSlideXmlDoc = parser.parseFromString(slideXmlStr, 'application/xml');
+                    const separatorSlideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
+                    
+                    // Create empty data for separator
+                    const separatorData = { ...modifiedData };
+                    // Clear all placeholders on the separator slide
+                    // We simply replace them with empty strings using the standard function
+                    const keysOnSlide = [];
+                    const textNodes = getElementsByLocalName(separatorSlideXmlDoc, 't');
+                    for (const node of textNodes) {
+                        const match = node.textContent?.match(/{{([a-zA-Z0-9_]+)}}/);
+                        if (match) keysOnSlide.push(match[1]);
+                    }
+                    keysOnSlide.forEach(k => separatorData[k] = '');
+
+                    const { shape: sepImageShape } = findImagePlaceholder(separatorSlideXmlDoc);
+                    if (sepImageShape && sepImageShape.parentNode) {
+                        sepImageShape.parentNode.removeChild(sepImageShape);
+                    }
+                    
+                    replaceSimplePlaceholders(separatorSlideXmlDoc, separatorData, null);
+
+                    const sepSlideNum = nextAvailableSlideNum++;
+                    const sepSlideId = nextAvailableSlideId++;
+                    const sepPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                    const sepSlidePath = `ppt/slides/slide${sepSlideNum}.xml`;
+                    const sepSlideRelsPath = sepSlidePath.replace('slides/', 'slides/_rels/') + '.rels';
+                    
+                    zip.file(sepSlidePath, serializer.serializeToString(separatorSlideXmlDoc));
+                    zip.file(sepSlideRelsPath, serializer.serializeToString(separatorSlideRelsXmlDoc));
+
+                    const sepOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                    sepOverride.setAttribute('PartName', `/${sepSlidePath}`);
+                    sepOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                    contentTypesXmlDoc.querySelector('Types')?.appendChild(sepOverride);
+                    
+                    const sepPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                    sepPresRel.setAttribute('Id', sepPresRelId);
+                    sepPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                    sepPresRel.setAttribute('Target', `slides/slide${sepSlideNum}.xml`);
+                    presRelsXmlDoc.querySelector('Relationships')?.appendChild(sepPresRel);
+                    
+                    const sepSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                    sepSldIdNode.setAttribute('id', String(sepSlideId));
+                    sepSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', sepPresRelId);
+                    newSlideIdNodes.push(sepSldIdNode);
+                }
+            }
+            continue;
+        }
+
+        // Doa Umat Duplication Logic
+        // Trigger: {{B016}} (Lektor 1)
+        if (slideXmlStr.includes('{{B016}}')) {
+             const lektorKeys = Object.keys(modifiedData).filter(k => /^B0(1[6-9]|2[0-5])$/.test(k)); // B016 to B025
+             const indices = lektorKeys.map(k => parseInt(k.substring(1), 10)).sort((a,b) => a-b);
+             
+             // Ensure we at least process 16 if it exists, logic below handles mapping
+             // Indices should be 16, 17, 18 etc.
+             
+             if (indices.length === 0 && modifiedData['B016']) indices.push(16);
+
+             for (let i = 0; i < indices.length; i++) {
+                const idx = indices[i];
+                const isOriginalSlide = i === 0;
+                
+                const currentSlideXmlDoc = isOriginalSlide ? slideXmlDoc : parser.parseFromString(slideXmlStr, 'application/xml');
+                
+                // Map Data
+                // Target template uses A016, B016, B27
+                // We map idx to 16
+                const localData = { ...modifiedData };
+                
+                // Replace generic Response B27 with specific response for this Lektor
+                const responseKey = `RESP_B${idx.toString().padStart(3, '0')}`;
+                if (modifiedData[responseKey]) {
+                    localData['B27'] = modifiedData[responseKey];
+                }
+
+                // Map A and B keys if idx != 16
+                if (idx !== 16) {
+                    localData['A016'] = modifiedData[`A0${idx}`] || modifiedData['A016'];
+                    localData['B016'] = modifiedData[`B0${idx}`] || '';
+                    // Also check images C
+                    if (modifiedData[`C0${idx}`]) localData['C016'] = modifiedData[`C0${idx}`];
+                    else delete localData['C016']; 
+                }
+
+                // Now process content
+                // Doa Umat usually doesn't have images, but good to be safe.
+                // It uses standard text processing.
+                
+                // Remove chunking logic for Doa Umat text? Usually short. But let's keep it standard.
+                 // B016 is the text key on the slide.
+                 
+                let splittableKey: string | null = null;
+                let chunks: string[] = [];
+                const textValue = localData['B016'];
+                 if (typeof textValue === 'string' && textValue.replace(/<[^>]+>/g, '').length > MAX_TEXT_LENGTH) {
+                    splittableKey = 'B016';
+                    chunks = chunkText(textValue, MAX_TEXT_LENGTH);
+                 }
+
+                 // Generate slides
+                 const processSlideVariant = (xml: XMLDocument, isBase: boolean) => {
+                     replaceSimplePlaceholders(xml, localData, splittableKey);
+                     // If chunks, replace splittable key
+                      getElementsByLocalName(xml, 't').forEach(node => {
+                        if (splittableKey && node.textContent?.includes(`{{${splittableKey}}}`)) {
+                           // Logic handled in loop below if chunks exist, or here if just one
+                        }
+                     });
+                     
+                     if (isBase) {
+                        zip.file(slidePath, serializer.serializeToString(xml));
+                        newSlideIdNodes.push(sldId.cloneNode(true));
+                     } else {
+                         const newSlideNum = nextAvailableSlideNum++;
+                         const newSlideId = nextAvailableSlideId++;
+                         const newPresRelId = `rId${getNextRid(presRelsXmlDoc)}`;
+                         const newSlidePath = `ppt/slides/slide${newSlideNum}.xml`;
+                         
+                         zip.file(newSlidePath, serializer.serializeToString(xml));
+                         // Reuse rels
+                         if (zip.file(slideRelsPath)) {
+                            zip.file(newSlidePath.replace('slides/', 'slides/_rels/') + '.rels', slideRelsStr); 
+                         } else {
+                            zip.file(newSlidePath.replace('slides/', 'slides/_rels/') + '.rels', `<Relationships xmlns="${NS_RELATIONSHIPS}"></Relationships>`);
+                         }
+
+                         const newOverride = contentTypesXmlDoc.createElementNS(NS_CONTENT_TYPES, 'Override');
+                         newOverride.setAttribute('PartName', `/${newSlidePath}`);
+                         newOverride.setAttribute('ContentType', 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml');
+                         contentTypesXmlDoc.querySelector('Types')?.appendChild(newOverride);
+                         
+                         const newPresRel = presRelsXmlDoc.createElementNS(NS_RELATIONSHIPS, 'Relationship');
+                         newPresRel.setAttribute('Id', newPresRelId);
+                         newPresRel.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide');
+                         newPresRel.setAttribute('Target', `slides/slide${newSlideNum}.xml`);
+                         presRelsXmlDoc.querySelector('Relationships')?.appendChild(newPresRel);
+                         
+                         const newSldIdNode = presXmlDoc.createElementNS(NS_PRESENTATIONML, 'p:sldId');
+                         newSldIdNode.setAttribute('id', String(newSlideId));
+                         newSldIdNode.setAttributeNS(NS_RELATIONSHIPS_OFFICE_DOC, 'r:id', newPresRelId);
+                         newSlideIdNodes.push(newSldIdNode);
+                     }
+                 };
+
+                 if (splittableKey && chunks.length > 1) {
+                     for(let c=0; c<chunks.length; c++) {
+                         const isBaseChunk = isOriginalSlide && c === 0;
+                         const chunkXml = isBaseChunk ? currentSlideXmlDoc : parser.parseFromString(serializer.serializeToString(currentSlideXmlDoc), 'application/xml');
+                         // Manually inject chunk
+                         replaceSimplePlaceholders(chunkXml, localData, splittableKey); // Replace others
+                          getElementsByLocalName(chunkXml, 't').forEach(node => {
+                            if (node.textContent?.includes(`{{${splittableKey}}}`)) {
+                                const chunkVal = chunks[c];
+                                const hasFormatting = /<\/?(?:b|i|u)(?:\s+[^>]*?)?>/i.test(chunkVal);
+                                if (hasFormatting) {
+                                    const parentRun = node.parentNode as Element;
+                                    if (parentRun && parentRun.localName === 'r') applyFormattedTextToRun(chunkXml, parentRun, chunkVal);
+                                } else {
+                                    node.textContent = node.textContent.replace(`{{${splittableKey}}}`, chunkVal);
+                                }
+                            }
+                         });
+                         processSlideVariant(chunkXml, isBaseChunk);
+                     }
+                 } else {
+                     processSlideVariant(currentSlideXmlDoc, isOriginalSlide);
+                 }
+             }
+             continue;
+        }
 
         // Check for Image Placeholders (C or T keys)
         const { key: imageKey, shape: imageShape } = findImagePlaceholder(slideXmlDoc);
@@ -684,7 +1032,7 @@ export const processTemplate = async (data: PresentationData, templateFile: File
              }
         }
         
-        // Check for Pengumuman (P keys) or Wedding (UP/UPS keys) Duplication
+        // ... (Pengumuman and Wedding duplication logic remains unchanged)
         const pPlaceholderMatch = slideXmlStr.match(/{{(P01|PC01)}}/); 
         const weddingPlaceholderMatch = slideXmlStr.match(/{{(UP01|UPS01|W01)}}/);
         
@@ -746,8 +1094,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                          } else {
                             let finalContent = textContent as string || '';
                             
-                            // Always attempt chunking for Pengumuman text if too long
-                            // chunkText handles HTML tags for us now
                             if (finalContent.length > MAX_TEXT_LENGTH) {
                                 splittableKey = 'P01';
                                 localData['P01'] = finalContent;
