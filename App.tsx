@@ -28,27 +28,40 @@ type FormField = {
     onlyFor?: MassType[];
 };
 
-// Updated Form Config - Containing Static Fields Only
+// Updated Form Config - Fixed Fields
 const formConfig: FormField[] = [
     { label: 'Thumbnail A', titleKey: 'A36', imageKey: 'C36', types: ['multi-image'], onlyFor: ['memule'] },
     { label: 'Pengantar', titleKey: 'A35', textKey: 'B35', types: ['text'], onlyFor: ['memule'] },
     
+    { label: 'Lagu Pembuka', titleKey: 'A01', textKey: 'B01', imageKey: 'C01', types: ['text', 'image'], section: 'showLaguPembuka' },
+
     { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02', types: ['text'], section: 'showTuhanKasihanilahKami' },
     { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03', types: ['text'], section: 'showTuhanKasihanilahKami' },
     { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04', types: ['text'], section: 'showTuhanKasihanilahKami' },
     { label: 'Doa Kolekta', titleKey: 'A05', textKey: 'B05', types: ['text'], section: 'showDoaKolekta' },
     { label: 'Bacaan I', titleKey: 'A06', textKey: 'B06', types: ['text'] },
-    { label: 'Mazmur Tanggapan (Refren)', titleKey: 'A07', textKey: 'B07', imageKey: 'C07', types: ['text', 'multi-image'] },
     
-    // Mazmur Ayat is now Dynamic (B08)
-    
+    // Mazmur Tanggapan Handled via Custom Render
+    // { label: 'Mazmur Tanggapan (Refren)', titleKey: 'A07', textKey: 'B07', imageKey: 'C07', types: ['text', 'multi-image'] },
+    // { label: 'Mazmur Tanggapan (Ayat 1)', titleKey: 'A08', textKey: 'B08', imageKey: 'C08', types: ['text', 'image'] },
+    // { label: 'Mazmur Tanggapan (Ayat 2)', titleKey: 'A09', textKey: 'B09', imageKey: 'C09', types: ['text', 'image'] },
+    // { label: 'Mazmur Tanggapan (Ayat 3)', titleKey: 'A010', textKey: 'B010', imageKey: 'C010', types: ['text', 'image'] },
+
     { label: 'Bacaan II', titleKey: 'A011', textKey: 'B011', types: ['text'], section: 'showBacaan2' },
-    { label: 'Bait Pengantar Injil (Refren)', titleKey: 'A012', imageKey: 'C012', types: ['multi-image'] },
+    
+    // BPI Handled via Custom Render
+    // { label: 'Bait Pengantar Injil (Refren)', titleKey: 'A012', imageKey: 'C012', types: ['multi-image'] },
+    // { label: 'Bait Pengantar Injil (Ayat)', titleKey: 'A013', textKey: 'B013', imageKey: 'C013', types: ['text', 'image'] },
     
     { label: 'Bacaan Injil', titleKey: 'A014', textKey: 'B014', types: ['text'] },
     
+    // Doa Umat Handled via Custom Render
+
+    { label: 'Lagu Persembahan', titleKey: 'A28', textKey: 'B28', imageKey: 'C28', types: ['text', 'image'], section: 'showLaguPersembahan' },
     { label: 'Doa Atas Persembahan', titleKey: 'A29', textKey: 'B29', types: ['text'] },
+    { label: 'Lagu Komuni', titleKey: 'A30', textKey: 'B30', imageKey: 'C30', types: ['text', 'image'], section: 'showLaguKomuni' },
     { label: 'Doa Sesudah Komuni', titleKey: 'A33', textKey: 'B33', types: ['text'], section: 'showDoaSesudahKomuni' },
+    { label: 'Lagu Penutup', titleKey: 'A34', textKey: 'B34', imageKey: 'C34', types: ['text', 'image'], section: 'showLaguPenutup' },
     
     { label: 'Thumbnail B', titleKey: 'A37', imageKey: 'C37', types: ['multi-image'], onlyFor: ['memule'] },
 ];
@@ -71,18 +84,17 @@ const defaultTitlesIndonesia: PresentationData = {
     A014: '(umat duduk) BACAAN INJIL | (Sumber)',
     A015: '(umat berdiri) DOA UMAT',
     A016: '(umat berdiri) DOA UMAT',
+    A017: '(umat berdiri) DOA UMAT',
+    A018: '(umat berdiri) DOA UMAT',
+    A019: '(umat berdiri) DOA UMAT',
+    A020: '(umat berdiri) DOA UMAT',
+    A021: '(umat berdiri) DOA UMAT',
+    A022: '(umat berdiri) DOA UMAT',
+    A023: '(umat berdiri) DOA UMAT',
+    A024: '(umat berdiri) DOA UMAT',
+    A025: '(umat berdiri) DOA UMAT',
     A026: '(umat berdiri) DOA UMAT',
     A27: '(umat berdiri) DOA UMAT',
-    RESP_B016: '',
-    RESP_B017: '',
-    RESP_B018: '',
-    RESP_B019: '',
-    RESP_B020: '',
-    RESP_B021: '',
-    RESP_B022: '',
-    RESP_B023: '',
-    RESP_B024: '',
-    RESP_B025: '',
     A28: '(umat duduk) NYANYIAN PERSEMBAHAN',
     A29: '(umat berdiri) DOA ATAS PERSEMBAHAN',
     A30: '(umat duduk) MADAH PUJIAN',
@@ -114,18 +126,17 @@ const defaultTitlesJawa: PresentationData = {
     A014: '(umat jumeneng) INJIL SUCI | (Sumber)',
     A015: '(umat jumeneng) SEMBAHYANGAN UMAT',
     A016: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A017: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A018: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A019: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A020: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A021: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A022: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A023: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A024: '(umat jumeneng) SEMBAHYANGAN UMAT',
+    A025: '(umat jumeneng) SEMBAHYANGAN UMAT',
     A026: '(umat jumeneng) SEMBAHYANGAN UMAT',
     A27: '(umat jumeneng) SEMBAHYANGAN UMAT',
-    RESP_B016: '',
-    RESP_B017: '',
-    RESP_B018: '',
-    RESP_B019: '',
-    RESP_B020: '',
-    RESP_B021: '',
-    RESP_B022: '',
-    RESP_B023: '',
-    RESP_B024: '',
-    RESP_B025: '',
     A28: '(umat lenggah) KIDUNG CECAWIS PISUNGSUNG',
     A29: '(umat jumeneng) SEMBAHYANGAN CECAWIS PISUNGSUNG',
     A30: '(umat lenggah) KIDUNG PUJIAN',
@@ -251,17 +262,6 @@ const App: React.FC = () => {
         showLaguPenutup: false,
     });
 
-    // Dynamic Fields State
-    const [dynamicFieldCounts, setDynamicFieldCounts] = useState<{ [key: string]: number }>({
-        'B01': 1,  // Lagu Pembuka
-        'B08': 1,  // Mazmur Ayat
-        'B013': 1, // Bait Pengantar Injil (Ayat)
-        'B28': 1,  // Lagu Persembahan
-        'B30': 1,  // Lagu Komuni
-        'B34': 1,  // Lagu Penutup
-        'B016': 1, // Doa Umat Lektors (Starts at 16)
-    });
-
     // Pengumuman State
     const [pengumumanConfig, setPengumumanConfig] = useState({
         openingFileName: '',
@@ -309,47 +309,6 @@ const App: React.FC = () => {
         }));
     };
 
-    const handleDynamicCountChange = (textKey: string, baseTitleKey: string | null, increment: boolean) => {
-        setDynamicFieldCounts(prev => {
-            const current = prev[textKey] || 1;
-            const next = increment ? current + 1 : Math.max(1, current - 1);
-            
-            if (increment) {
-                 // Doa Umat Special Logic: Copy from FIRST Lektor
-                 if (textKey === 'B016') {
-                     const firstLektorTitle = (presentationData as any)['A016'] || '';
-                     const firstLektorResp = (presentationData as any)['RESP_B016'] || '';
-                     
-                     const newIndex = 16 + current; // e.g., if count is 1, next is 2. Index starts at 16. so 16+1 = 17.
-                     const newTitleKey = `A0${newIndex}`;
-                     const newRespKey = `RESP_B0${newIndex}`;
-                     
-                     setPresentationData(p => ({
-                         ...p,
-                         [newTitleKey]: (p as any)[newTitleKey] || firstLektorTitle,
-                         [newRespKey]: (p as any)[newRespKey] || firstLektorResp
-                     }));
-                 } else if (baseTitleKey) {
-                    // Logic for songs (copy title from base)
-                    const baseTitleValue = (presentationData as any)[baseTitleKey];
-                    const nextSuffix = `_${next}`; // e.g. _2, _3
-                    const targetTitleKey = `${baseTitleKey}${nextSuffix}`;
-                    
-                    if (baseTitleValue) {
-                        setPresentationData(p => {
-                            if (!(p as any)[targetTitleKey]) {
-                                return { ...p, [targetTitleKey]: baseTitleValue };
-                            }
-                            return p;
-                        });
-                    }
-                }
-            }
-
-            return { ...prev, [textKey]: next };
-        });
-    };
-    
     const handleWeddingModeToggle = (index: number) => {
         setWeddingPhotoModes(prev => ({
             ...prev,
@@ -473,6 +432,27 @@ const App: React.FC = () => {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        
+        // Special logic for Doa Umat Lektor 1 (A016)
+        if (name === 'A016') {
+             // Logic to update other Lektors if needed can be added here
+             // Auto-copy Lektor 1 title to others if they are empty or match default
+             // This is handled in render/state update, but simple prop update here.
+             setPresentationData(prev => {
+                 const newData = { ...prev, [name]: value };
+                 for (let i = 2; i <= 10; i++) {
+                     const idx = 15 + i; // Lektor 2 starts at 17
+                     const key = `A0${idx}`;
+                     // If other lektor title is empty or same as old Lektor 1, update it
+                     if (!prev[key] || prev[key] === prev['A016']) {
+                         newData[key] = value;
+                     }
+                 }
+                 return newData;
+             });
+             return;
+        }
+
         setPresentationData(prev => ({ ...prev, [name]: value }));
     };
     
@@ -769,61 +749,7 @@ const App: React.FC = () => {
         </div>
     );
 
-    const renderDynamicSongSection = (baseKey: string, label: string, textKey: string, imageKey: string) => {
-        const count = dynamicFieldCounts[textKey] || 1;
-        
-        return (
-            <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
-                 <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
-                    <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">{label}</h3>
-                </div>
-
-                {Array.from({ length: count }).map((_, idx) => {
-                    const suffix = idx === 0 ? '' : `_${idx + 1}`;
-                    const currentTitleKey = `${baseKey}${suffix}`;
-                    const currentTextKey = `${textKey}${suffix}`;
-                    const currentImageKey = `${imageKey}${suffix}`;
-                    
-                    const fieldId = currentTitleKey;
-                    const currentMode = inputModes[fieldId] || 'text';
-                    const displayLabel = idx === 0 ? label : `${label} ${toRoman(idx + 1)}`;
-
-                    return (
-                        <div key={fieldId} className="space-y-4 border-b-2 border-dashed border-brutal-border pb-4 last:border-0 last:pb-0">
-                            {idx > 0 && <h4 className="font-bold text-sm uppercase">{displayLabel}</h4>}
-                            
-                            <div>
-                                <label htmlFor={currentTitleKey} className="block text-xs font-bold uppercase text-brutal-text">Title</label>
-                                <input type="text" id={currentTitleKey} name={currentTitleKey} value={(presentationData as any)[currentTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
-                            </div>
-
-                            {renderContentToolbar(currentMode, currentTextKey, (m) => handleModeChange(fieldId, m))}
-                            
-                            {currentMode === 'text' ? (
-                                <div>
-                                    <textarea id={currentTextKey} name={currentTextKey} value={(presentationData as any)[currentTextKey] || ''} onChange={handleInputChange} className="w-full h-32 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
-                                </div>
-                            ) : (
-                                <div>
-                                    <FileUpload id={currentImageKey} onFileSelect={(files) => handleFileChange(currentImageKey, files)} multiple={true} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[currentImageKey] || []} onFileRemove={(fileName) => handleFileRemove(currentImageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(currentImageKey, fileName)} invertedFiles={invertedImages[currentImageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(currentImageKey, fileName)}/>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-                
-                <div className="flex justify-center mt-2">
-                    <button onClick={() => handleDynamicCountChange(textKey, baseKey, true)} className="w-full py-2 bg-brutal-surface text-brutal-text border-2 border-dashed border-brutal-border flex items-center justify-center gap-2 hover:bg-brutal-bg transition-colors active:translate-y-1 font-bold uppercase text-sm">
-                        <PlusIcon className="w-4 h-4" /> ADD ITEM
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    const renderDoaUmatSection = () => {
-        const lektorCount = dynamicFieldCounts['B016'] || 1;
-
+    const renderDoaUmatSectionStatic = () => {
         return (
             <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
                 <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
@@ -837,19 +763,18 @@ const App: React.FC = () => {
                     <textarea id="B015" name="B015" value={(presentationData as any)['B015'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text" placeholder="Teks Imam Pembuka"/>
                 </div>
 
-                {/* Lektors */}
-                {Array.from({ length: lektorCount }).map((_, idx) => {
+                {/* Fixed Lektors 1-10 */}
+                {Array.from({ length: 10 }).map((_, idx) => {
                     const lektorIndex = 16 + idx;
                     const titleKey = `A0${lektorIndex}`;
                     const textKey = `B0${lektorIndex}`;
-                    const respKey = `RESP_B0${lektorIndex}`;
 
                     return (
                         <div key={titleKey} className="pl-4 border-l-4 border-brutal-border space-y-2 py-2">
                              <h4 className="font-bold text-sm uppercase bg-brutal-bg inline-block px-1 border border-brutal-border">Lektor {toRoman(idx + 1)}</h4>
                              
                              <div>
-                                <label className="block text-[10px] font-bold uppercase text-brutal-text">Title</label>
+                                <label className="block text-xs font-bold uppercase text-brutal-text">Title</label>
                                 <input type="text" name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-1 font-mono text-xs focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
                              </div>
 
@@ -857,19 +782,23 @@ const App: React.FC = () => {
                                 {renderContentToolbar('text', textKey, undefined)}
                                 <textarea name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
                              </div>
-
-                             <div className="bg-brutal-accent/10 p-2 border-2 border-dashed border-brutal-accent">
-                                <label className="block text-[10px] font-bold uppercase text-brutal-text mb-1">Jawaban Umat</label>
-                                <textarea name={respKey} value={(presentationData as any)[respKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-surface border-2 border-brutal-border p-2 font-mono text-sm focus:bg-white focus:outline-none font-bold text-brutal-text" placeholder="Jawaban Umat (Kosongkan jika tidak ada)"/>
-                             </div>
                         </div>
                     );
                 })}
 
-                <div className="flex justify-center mt-2 pl-4">
-                    <button onClick={() => handleDynamicCountChange('B016', null, true)} className="w-full py-2 bg-brutal-surface text-brutal-text border-2 border-dashed border-brutal-border flex items-center justify-center gap-2 hover:bg-brutal-bg transition-colors active:translate-y-1 font-bold uppercase text-sm">
-                        <PlusIcon className="w-4 h-4" /> ADD ITEM
-                    </button>
+                 {/* Static Jawaban Umat (A27, B27) */}
+                 <div className="pl-4 border-l-4 border-brutal-border space-y-2 py-2 mt-4 bg-brutal-bg/10">
+                     <h4 className="font-bold text-sm uppercase bg-brutal-bg inline-block px-1 border border-brutal-border">Jawaban Umat</h4>
+                     
+                     <div>
+                        <label className="block text-xs font-bold uppercase text-brutal-text">Title</label>
+                        <input type="text" name="A27" value={(presentationData as any)['A27'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-1 font-mono text-xs focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
+                     </div>
+
+                     <div>
+                        {renderContentToolbar('text', 'B27', undefined)}
+                        <textarea name="B27" value={(presentationData as any)['B27'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text" placeholder="Kabulkanlah doa kami ya Tuhan..."/>
+                     </div>
                 </div>
 
                 {/* Imam Penutup */}
@@ -877,6 +806,108 @@ const App: React.FC = () => {
                     <label htmlFor="A026" className="block text-xs font-bold uppercase text-brutal-text">Imam (Penutup)</label>
                      <input type="text" id="A026" name="A026" value={(presentationData as any)['A026'] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
                     <textarea id="B026" name="B026" value={(presentationData as any)['B026'] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text" placeholder="Teks Imam Penutup"/>
+                </div>
+            </div>
+        );
+    }
+    
+    const renderMazmurSectionStatic = () => {
+        // Mazmur Tanggapan (Refren) - A07, B07, C07
+        const refrenTitleKey = 'A07';
+        const refrenTextKey = 'B07';
+        const refrenImageKey = 'C07';
+        const refrenMode = inputModes[refrenTitleKey] || 'text'; // Default to text, user can toggle if config allows
+
+        return (
+            <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
+                <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
+                    <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">MAZMUR TANGGAPAN</h3>
+                </div>
+
+                {/* Refren Section (Imam Pembuka Style) */}
+                 <div className="space-y-1">
+                    <label htmlFor={refrenTitleKey} className="block text-xs font-bold uppercase text-brutal-text">Refren</label>
+                    <input type="text" id={refrenTitleKey} name={refrenTitleKey} value={(presentationData as any)[refrenTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                    
+                    {renderContentToolbar(refrenMode, refrenTextKey, (m) => handleModeChange(refrenTitleKey, m))}
+                    
+                    {refrenMode === 'text' ? (
+                         <textarea id={refrenTextKey} name={refrenTextKey} value={(presentationData as any)[refrenTextKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
+                    ) : (
+                         <FileUpload id={refrenImageKey} onFileSelect={(files) => handleFileChange(refrenImageKey, files)} multiple={true} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[refrenImageKey] || []} onFileRemove={(fileName) => handleFileRemove(refrenImageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(refrenImageKey, fileName)} invertedFiles={invertedImages[refrenImageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(refrenImageKey, fileName)}/>
+                    )}
+                </div>
+
+                {/* Ayat 1-3 Section (Lektor Style) */}
+                {[1, 2, 3].map((num) => {
+                    const ayatIndex = 7 + num; // A08, A09, A010
+                    const titleKey = `A0${ayatIndex}`; // e.g. A08
+                    const textKey = `B0${ayatIndex}`;
+                    const imageKey = `C0${ayatIndex}`;
+                    const currentMode = inputModes[titleKey] || 'text';
+
+                    return (
+                        <div key={titleKey} className="pl-4 border-l-4 border-brutal-border space-y-2 py-2">
+                             <h4 className="font-bold text-sm uppercase bg-brutal-bg inline-block px-1 border border-brutal-border">Ayat {num}</h4>
+                             
+                             <div>
+                                <label className="block text-xs font-bold uppercase text-brutal-text">Title</label>
+                                <input type="text" name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-1 font-mono text-xs focus:bg-brutal-surface focus:outline-none text-brutal-text"/>
+                             </div>
+
+                             <div>
+                                {renderContentToolbar(currentMode, textKey, (m) => handleModeChange(titleKey, m))}
+                                {currentMode === 'text' ? (
+                                    <textarea name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
+                                ) : (
+                                    <FileUpload id={imageKey} onFileSelect={(files) => handleFileChange(imageKey, files)} multiple={false} accept="image/*" label="UPLOAD IMAGE" files={uploadedFiles[imageKey] || []} onFileRemove={(fileName) => handleFileRemove(imageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(imageKey, fileName)} invertedFiles={invertedImages[imageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(imageKey, fileName)}/>
+                                )}
+                             </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    const renderBPISectionStatic = () => {
+        // BPI Refren (A012, C012)
+        const refrenTitleKey = 'A012';
+        const refrenImageKey = 'C012';
+        // BPI Ayat (A013, B013, C013)
+        const ayatTitleKey = 'A013';
+        const ayatTextKey = 'B013';
+        const ayatImageKey = 'C013';
+        const ayatMode = inputModes[ayatTitleKey] || 'text';
+
+        return (
+             <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
+                <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
+                    <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">BAIT PENGANTAR INJIL</h3>
+                </div>
+
+                {/* Refren Section (Imam Pembuka Style) */}
+                 <div className="space-y-1">
+                    <label htmlFor={refrenTitleKey} className="block text-xs font-bold uppercase text-brutal-text">Refren</label>
+                    <input type="text" id={refrenTitleKey} name={refrenTitleKey} value={(presentationData as any)[refrenTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                    {/* BPI Refren is typically Image only based on config but here we just render Image Upload */}
+                    <div className="mt-2">
+                        <FileUpload id={refrenImageKey} onFileSelect={(files) => handleFileChange(refrenImageKey, files)} multiple={true} accept="image/*" label="UPLOAD IMAGE (REFREN)" files={uploadedFiles[refrenImageKey] || []} onFileRemove={(fileName) => handleFileRemove(refrenImageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(refrenImageKey, fileName)} invertedFiles={invertedImages[refrenImageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(refrenImageKey, fileName)}/>
+                    </div>
+                </div>
+                
+                 {/* Ayat Section (Imam Pembuka Style) - Top Level, no indentation */}
+                 <div className="space-y-1 pt-4 border-t-4 border-brutal-border">
+                    <label htmlFor={ayatTitleKey} className="block text-xs font-bold uppercase text-brutal-text">Ayat</label>
+                    <input type="text" id={ayatTitleKey} name={ayatTitleKey} value={(presentationData as any)[ayatTitleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                    
+                    {renderContentToolbar(ayatMode, ayatTextKey, (m) => handleModeChange(ayatTitleKey, m))}
+                    
+                    {ayatMode === 'text' ? (
+                         <textarea id={ayatTextKey} name={ayatTextKey} value={(presentationData as any)[ayatTextKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
+                    ) : (
+                         <FileUpload id={ayatImageKey} onFileSelect={(files) => handleFileChange(ayatImageKey, files)} multiple={false} accept="image/*" label="UPLOAD IMAGE (AYAT)" files={uploadedFiles[ayatImageKey] || []} onFileRemove={(fileName) => handleFileRemove(ayatImageKey, fileName)} onInvertToggle={(fileName) => handleInvertToggle(ayatImageKey, fileName)} invertedFiles={invertedImages[ayatImageKey]} isImage={true} onFileEdit={(fileName) => handleFileEdit(ayatImageKey, fileName)}/>
+                    )}
                 </div>
             </div>
         );
@@ -1102,10 +1133,8 @@ const App: React.FC = () => {
                                         {massType === 'memule' && renderStaticField('A36')} {/* Thumbnail A */}
                                         {massType === 'memule' && renderStaticField('A35')} {/* Pengantar */}
 
-                                        {/* 2. Lagu Pembuka (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPembuka) && 
-                                            renderDynamicSongSection('A01', 'LAGU PEMBUKA', 'B01', 'C01')
-                                        }
+                                        {/* 2. Lagu Pembuka (Static) */}
+                                        {renderStaticField('A01')}
 
                                         {/* 3. Tuhan Kasihanilah Kami (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showTuhanKasihanilahKami) && (
@@ -1122,49 +1151,37 @@ const App: React.FC = () => {
                                         {/* 5. Bacaan I (Static) */}
                                         {renderStaticField('A06')}
 
-                                        {/* 6. Mazmur Tanggapan Refren (Static) */}
-                                        {renderStaticField('A07')}
-
-                                        {/* 7. Mazmur Tanggapan Ayat (Dynamic) */}
-                                        {renderDynamicSongSection('A08', 'MAZMUR TANGGAPAN (AYAT)', 'B08', 'C08')}
+                                        {/* 6. Mazmur Tanggapan (Custom Static Section) */}
+                                        {renderMazmurSectionStatic()}
 
                                         {/* 8. Bacaan II (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showBacaan2) && renderStaticField('A011')}
 
-                                        {/* 9. Bait Pengantar Injil Refren (Static) */}
-                                        {renderStaticField('A012')}
-
-                                        {/* 10. Bait Pengantar Injil Ayat (Dynamic) */}
-                                        {renderDynamicSongSection('A013', 'BAIT PENGANTAR INJIL (AYAT)', 'B013', 'C013')}
+                                        {/* 9. Bait Pengantar Injil (Custom Static Section) */}
+                                        {renderBPISectionStatic()}
 
                                         {/* 11. Bacaan Injil (Static) */}
                                         {renderStaticField('A014')}
 
-                                        {/* 12. Doa Umat (Custom Dynamic Section) */}
+                                        {/* 12. Doa Umat (Custom Static Section with Lektors I-X) */}
                                         {(massType !== 'harian' || harianOptionalSections.showDoaUmat) && 
-                                            renderDoaUmatSection()
+                                            renderDoaUmatSectionStatic()
                                         }
 
-                                        {/* 13. Lagu Persembahan (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPersembahan) && 
-                                            renderDynamicSongSection('A28', 'LAGU PERSEMBAHAN', 'B28', 'C28')
-                                        }
+                                        {/* 13. Lagu Persembahan (Static) */}
+                                        {renderStaticField('A28')}
 
                                         {/* 14. Doa Atas Persembahan (Static) */}
                                         {renderStaticField('A29')}
 
-                                        {/* 15. Lagu Komuni (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguKomuni) && 
-                                            renderDynamicSongSection('A30', 'LAGU KOMUNI', 'B30', 'C30')
-                                        }
+                                        {/* 15. Lagu Komuni (Static) */}
+                                        {renderStaticField('A30')}
 
                                         {/* 16. Doa Sesudah Komuni (Static) */}
                                         {(massType !== 'harian' || harianOptionalSections.showDoaSesudahKomuni) && renderStaticField('A33')}
 
-                                        {/* 17. Lagu Penutup (Dynamic) */}
-                                        {(massType !== 'harian' || harianOptionalSections.showLaguPenutup) && 
-                                            renderDynamicSongSection('A34', 'LAGU PENUTUP', 'B34', 'C34')
-                                        }
+                                        {/* 17. Lagu Penutup (Static) */}
+                                        {renderStaticField('A34')}
                                         
                                         {/* 18. Thumbnail B (Memule Only) */}
                                         {massType === 'memule' && renderStaticField('A37')}

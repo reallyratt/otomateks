@@ -606,11 +606,15 @@ export const processTemplate = async (data: PresentationData, templateFile: File
         const slideRelsStr = await zip.file(slideRelsPath)?.async('string') || `<Relationships xmlns="${NS_RELATIONSHIPS}"></Relationships>`;
         const slideRelsXmlDoc = parser.parseFromString(slideRelsStr, 'application/xml');
 
-        // --- Dynamic Field Duplication (Songs, BPI Ayat, Doa Umat, Mazmur) ---
-        // Check if this slide handles extensible songs (B01, B08, B13, B28, B30, B34)
+        // --- Dynamic Field Duplication ---
+        
+        // Special Logic for Mazmur (B08):
+        // If template has B08, we want to see if we have B09 and B10 data. 
+        // If we do, we treat them as expansions of B08.
+        let expansionKey = null;
         
         const expandableFields = ['B01', 'B08', 'B013', 'B28', 'B30', 'B34'];
-        let expansionKey = expandableFields.find(key => slideXmlStr.includes(`{{${key}}}`));
+        expansionKey = expandableFields.find(key => slideXmlStr.includes(`{{${key}}}`));
         
         if (expansionKey) {
             // Extract the numeric/alpha part
@@ -623,6 +627,16 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 const parts = k.split('_');
                 if (parts.length > 1) indices.push(parseInt(parts[1], 10));
             });
+            
+            // MAZMUR SPECIAL: If we found B08, also look for B09 and B10 in data and map them to indices 2 and 3
+            // This allows static fields (Ayat 2, Ayat 3) to use the Ayat 1 template
+            if (expansionKey === 'B08') {
+                if (modifiedData['B09']) indices.push(2);
+                if (modifiedData['B010']) indices.push(3);
+                
+                // Map B09/B10 content to B08_2/B08_3 in local data context later
+            }
+
             indices.sort((a,b) => a-b);
             
             const allIndices = [1, ...indices];
@@ -638,17 +652,37 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 const localData = { ...modifiedData };
                 
                 if (idx > 1) {
-                    ['A', 'B', 'C'].forEach(prefix => {
-                        const baseKey = `${prefix}${baseSuffix}`;
-                        const targetKey = `${prefix}${baseSuffix}_${idx}`;
-                        if (modifiedData[targetKey] !== undefined) {
-                            localData[baseKey] = modifiedData[targetKey];
-                        } else {
-                            // If title (A) is missing for suffix, reuse base title
-                            if (prefix === 'A') localData[baseKey] = modifiedData[baseKey]; 
-                            else localData[baseKey] = ''; 
-                        }
-                    });
+                    if (expansionKey === 'B08' && (idx === 2 || idx === 3)) {
+                        // Special mapping for Mazmur
+                        const sourceSuffix = idx === 2 ? '09' : '010';
+                        const targetSuffix = '08';
+                        
+                        // Map A09->A08, B09->B08, C09->C08
+                        ['A', 'B', 'C'].forEach(prefix => {
+                            const sourceKey = `${prefix}${sourceSuffix}`;
+                            const targetKey = `${prefix}${targetSuffix}`;
+                            if (modifiedData[sourceKey] !== undefined) {
+                                localData[targetKey] = modifiedData[sourceKey];
+                            } else {
+                                if (prefix === 'A') localData[targetKey] = modifiedData[targetKey]; 
+                                else localData[targetKey] = ''; 
+                            }
+                        });
+
+                    } else {
+                        // Standard dynamic logic (B01_2 -> B01)
+                        ['A', 'B', 'C'].forEach(prefix => {
+                            const baseKey = `${prefix}${baseSuffix}`;
+                            const targetKey = `${prefix}${baseSuffix}_${idx}`;
+                            if (modifiedData[targetKey] !== undefined) {
+                                localData[baseKey] = modifiedData[targetKey];
+                            } else {
+                                // If title (A) is missing for suffix, reuse base title
+                                if (prefix === 'A') localData[baseKey] = modifiedData[baseKey]; 
+                                else localData[baseKey] = ''; 
+                            }
+                        });
+                    }
                 }
                 
                 const processInnerSlide = async (finalXml: XMLDocument, finalRels: XMLDocument, data: PresentationData, isBase: boolean) => {
@@ -944,13 +978,6 @@ export const processTemplate = async (data: PresentationData, templateFile: File
                 // Map Data
                 const localData = { ...modifiedData };
                 
-                // Replace generic Response B27 with specific response for this Lektor
-                const responseKey = `RESP_B${idx.toString().padStart(3, '0')}`;
-                // Fallback to the first response (RESP_B016) if the specific one is empty, or empty string if that's missing too.
-                // This ensures B27 has a value so it gets replaced.
-                const effectiveResponse = modifiedData[responseKey] || modifiedData['RESP_B016'] || '';
-                localData['B27'] = effectiveResponse;
-
                 if (idx !== 16) {
                     localData['A016'] = modifiedData[`A0${idx}`] || modifiedData['A016'];
                     localData['B016'] = modifiedData[`B0${idx}`] || '';
