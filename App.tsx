@@ -35,9 +35,11 @@ const formConfig: FormField[] = [
     
     { label: 'Lagu Pembuka', titleKey: 'A01', textKey: 'B01', imageKey: 'C01', types: ['text', 'image'], section: 'showLaguPembuka' },
 
-    { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02', types: ['text'], section: 'showTuhanKasihanilahKami' },
-    { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03', types: ['text'], section: 'showTuhanKasihanilahKami' },
-    { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    // Tuhan Kasihanilah Kami Handled via Custom Render
+    // { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    // { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03', types: ['text'], section: 'showTuhanKasihanilahKami' },
+    // { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04', types: ['text'], section: 'showTuhanKasihanilahKami' },
+
     { label: 'Doa Kolekta', titleKey: 'A05', textKey: 'B05', types: ['text'], section: 'showDoaKolekta' },
     { label: 'Bacaan I', titleKey: 'A06', textKey: 'B06', types: ['text'] },
     
@@ -749,6 +751,38 @@ const App: React.FC = () => {
         </div>
     );
 
+    const renderTuhanKasihanilahKamiSection = () => {
+        const sections = [
+            { label: 'Tuhan Kasihanilah Kami I', titleKey: 'A02', textKey: 'B02' },
+            { label: 'Tuhan Kasihanilah Kami II', titleKey: 'A03', textKey: 'B03' },
+            { label: 'Tuhan Kasihanilah Kami III', titleKey: 'A04', textKey: 'B04' },
+        ];
+
+        return (
+            <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-6 animate-fadeIn">
+                 <div className="flex justify-between items-center border-b-4 border-brutal-border pb-2">
+                    <h3 className="text-lg font-black uppercase bg-brutal-accent text-brutal-white px-2 border-2 border-brutal-border">TUHAN KASIHANILAH KAMI</h3>
+                </div>
+
+                {sections.map(section => {
+                    const { titleKey, textKey, label } = section;
+                    const currentMode = inputModes[titleKey] || 'text'; // Default text mode
+
+                    return (
+                        <div key={titleKey} className="space-y-1 border-b-2 border-brutal-border/50 pb-4 last:border-b-0">
+                            <label htmlFor={titleKey} className="block text-xs font-bold uppercase text-brutal-text bg-brutal-bg inline-block px-1 border border-brutal-border mb-1">{label}</label>
+                            <input type="text" id={titleKey} name={titleKey} value={(presentationData as any)[titleKey] || ''} onChange={handleInputChange} className="w-full bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none mb-2 text-brutal-text"/>
+                            
+                            {renderContentToolbar(currentMode, textKey, undefined)}
+                            
+                            <textarea id={textKey} name={textKey} value={(presentationData as any)[textKey] || ''} onChange={handleInputChange} className="w-full h-24 bg-brutal-bg border-2 border-brutal-border p-2 font-mono text-sm focus:bg-brutal-surface focus:outline-none hide-scrollbar text-brutal-text"/>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
     const renderDoaUmatSectionStatic = () => {
         return (
             <div className="bg-brutal-surface p-4 border-4 border-brutal-border space-y-4 animate-fadeIn">
@@ -1136,13 +1170,9 @@ const App: React.FC = () => {
                                         {/* 2. Lagu Pembuka (Static) */}
                                         {renderStaticField('A01')}
 
-                                        {/* 3. Tuhan Kasihanilah Kami (Static) */}
+                                        {/* 3. Tuhan Kasihanilah Kami (Custom Section) */}
                                         {(massType !== 'harian' || harianOptionalSections.showTuhanKasihanilahKami) && (
-                                            <>
-                                                {renderStaticField('A02')}
-                                                {renderStaticField('A03')}
-                                                {renderStaticField('A04')}
-                                            </>
+                                            renderTuhanKasihanilahKamiSection()
                                         )}
 
                                         {/* 4. Doa Kolekta (Static) */}
